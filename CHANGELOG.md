@@ -2,6 +2,10 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.3 - 2026-06-30
+
+- Made Korean the default README and moved English documentation to `README.en.md`.
+
 ## 0.1.2 - 2026-06-30
 
 - Added Korean README documentation.
