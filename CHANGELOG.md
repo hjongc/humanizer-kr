@@ -2,6 +2,12 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.2 - 2026-06-30
+
+- Added Korean README documentation.
+- Updated GitHub repository About metadata for Korean users.
+- Corrected Claude install documentation to prefer HTTPS marketplace URLs.
+
 ## 0.1.1 - 2026-06-30
 
 - Added Claude Code marketplace metadata for `claude plugin marketplace add`.

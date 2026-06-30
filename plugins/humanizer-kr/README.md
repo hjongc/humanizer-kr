@@ -1,5 +1,7 @@
 # Humanizer KR
 
+[English](README.md) | [한국어](README.ko.md)
+
 Humanizer KR is a Korean-specialized writing skill for Codex and Claude Code. It rewrites AI-sounding Korean into natural, context-aware Korean while preserving the user's facts, intent, and register.
 
 It is designed for product copy, public notices, emails, documentation, proposals, posts, and other Korean drafts where stiff translationese, inflated claims, or chatbot-like structure make the writing feel less human.
@@ -74,14 +76,14 @@ This repository also includes a Claude Code plugin manifest:
 Add the repository as a Claude Code marketplace, then install the plugin:
 
 ```bash
-claude plugin marketplace add hjongc/humanizer-kr
+claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, pin the release tag when your Claude Code version supports refs in marketplace sources, or clone this repository at `v0.1.1` and add the local path:
+For an immutable install, clone this repository at `v0.1.2` and add the local path:
 
 ```bash
-git clone --branch v0.1.1 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.2 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```

@@ -15,6 +15,7 @@ SYNC_PATHS = [
     "skills",
     "LICENSE",
     "README.md",
+    "README.ko.md",
 ]
 
 

@@ -116,6 +116,7 @@ def validate_packaged_plugin_copy() -> None:
         "skills/humanizer-kr/scripts/audit_korean_text.py",
         "LICENSE",
         "README.md",
+        "README.ko.md",
     ]
     require(not (package_root / ".claude-plugin" / "marketplace.json").exists(), "packaged plugin must not contain root Claude marketplace metadata")
     for rel in required_paths:
