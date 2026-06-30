@@ -1,0 +1,8 @@
+interface:
+  display_name: "Humanizer KR"
+  short_description: "Natural Korean rewriting for AI-looking drafts"
+  brand_color: "#2563EB"
+  default_prompt: "Use $humanizer-kr to rewrite this draft into natural, source-grounded Korean."
+
+policy:
+  allow_implicit_invocation: true

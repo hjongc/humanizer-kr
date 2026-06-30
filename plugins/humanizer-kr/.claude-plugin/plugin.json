@@ -1,0 +1,17 @@
+{
+  "name": "humanizer-kr",
+  "version": "0.1.0",
+  "description": "Korean-specialized writing skill for rewriting AI-sounding Korean into natural, source-grounded Korean.",
+  "author": {
+    "name": "humanizer-kr contributors"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/hjongc/humanizer-kr",
+  "skills": "./skills/",
+  "keywords": [
+    "korean",
+    "writing",
+    "editing",
+    "plain-language"
+  ]
+}

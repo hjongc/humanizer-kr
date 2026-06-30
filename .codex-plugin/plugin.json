@@ -1,0 +1,43 @@
+{
+  "name": "humanizer-kr",
+  "version": "0.1.0",
+  "description": "Korean-specialized humanizer skill for rewriting AI-sounding Korean into natural, source-grounded Korean.",
+  "author": {
+    "name": "humanizer-kr contributors"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hjongc/humanizer-kr"
+  },
+  "homepage": "https://github.com/hjongc/humanizer-kr#readme",
+  "bugs": {
+    "url": "https://github.com/hjongc/humanizer-kr/issues"
+  },
+  "keywords": [
+    "korean",
+    "writing",
+    "editing",
+    "plain-language",
+    "codex-skill",
+    "claude-skill"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Humanizer KR",
+    "shortDescription": "Natural Korean rewriting for AI-looking drafts.",
+    "longDescription": "Humanizer KR packages a Codex skill that rewrites Korean drafts with plain-language discipline, register control, Korean-specific AI-writing pattern checks, and source-grounded vocabulary guidance from trusted Korean language resources.",
+    "developerName": "humanizer-kr contributors",
+    "category": "Writing",
+    "capabilities": [
+      "Write",
+      "Review"
+    ],
+    "defaultPrompt": [
+      "Use $humanizer-kr to make this Korean draft sound natural.",
+      "Use $humanizer-kr to review this Korean copy for AI-like phrasing.",
+      "Use $humanizer-kr with my sample voice to rewrite this text."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

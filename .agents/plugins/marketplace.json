@@ -1,0 +1,21 @@
+{
+  "name": "humanizer-kr-marketplace",
+  "interface": {
+    "displayName": "Humanizer KR",
+    "description": "Korean writing skills for natural, source-grounded rewrites."
+  },
+  "plugins": [
+    {
+      "name": "humanizer-kr",
+      "source": {
+        "source": "local",
+        "path": "./plugins/humanizer-kr"
+      },
+      "category": "Writing",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    }
+  ]
+}
