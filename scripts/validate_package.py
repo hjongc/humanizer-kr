@@ -90,6 +90,21 @@ def validate_marketplace() -> None:
             require(isinstance(source, str) and source.startswith("./"), "marketplace source must be a relative ./ path")
 
 
+def validate_claude_marketplace() -> None:
+    path = ROOT / ".claude-plugin" / "marketplace.json"
+    require(path.exists(), ".claude-plugin/marketplace.json is missing")
+    marketplace = load_json(path)
+    require(marketplace.get("$schema") == "https://anthropic.com/claude-code/marketplace.schema.json", "Claude marketplace schema URL is missing or invalid")
+    require(marketplace.get("name") == "humanizer-kr-marketplace", "Claude marketplace name must be humanizer-kr-marketplace")
+    plugins = marketplace.get("plugins")
+    require(isinstance(plugins, list) and plugins, "Claude marketplace plugins must be a non-empty list")
+    plugin = plugins[0]
+    require(plugin.get("name") == "humanizer-kr", "Claude marketplace plugin name must be humanizer-kr")
+    require(plugin.get("source") == "./plugins/humanizer-kr", "Claude marketplace source must point to ./plugins/humanizer-kr")
+    require(bool(plugin.get("description")), "Claude marketplace plugin description is missing")
+    require(bool(plugin.get("category")), "Claude marketplace plugin category is missing")
+
+
 def validate_packaged_plugin_copy() -> None:
     package_root = ROOT / "plugins" / "humanizer-kr"
     require(package_root.exists(), "plugins/humanizer-kr marketplace package is missing")
@@ -102,6 +117,7 @@ def validate_packaged_plugin_copy() -> None:
         "LICENSE",
         "README.md",
     ]
+    require(not (package_root / ".claude-plugin" / "marketplace.json").exists(), "packaged plugin must not contain root Claude marketplace metadata")
     for rel in required_paths:
         source = ROOT / rel
         packaged = package_root / rel
@@ -132,6 +148,7 @@ def main() -> None:
     validate_skill()
     validate_references()
     validate_marketplace()
+    validate_claude_marketplace()
     validate_packaged_plugin_copy()
     validate_examples()
     print("Humanizer KR package validation passed.")

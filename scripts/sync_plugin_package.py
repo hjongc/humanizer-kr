@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = ROOT / "plugins" / "humanizer-kr"
 SYNC_PATHS = [
     ".codex-plugin",
-    ".claude-plugin",
+    ".claude-plugin/plugin.json",
     "skills",
     "LICENSE",
     "README.md",
@@ -34,6 +34,8 @@ def copy_path(relative: str) -> None:
 
 
 def main() -> None:
+    if PACKAGE_ROOT.exists():
+        shutil.rmtree(PACKAGE_ROOT)
     PACKAGE_ROOT.mkdir(parents=True, exist_ok=True)
     for relative in SYNC_PATHS:
         copy_path(relative)

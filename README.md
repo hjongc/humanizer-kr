@@ -21,6 +21,7 @@ Humanizer KR is not an AI detector. The audit script flags patterns that deserve
 ```text
 .codex-plugin/plugin.json          Codex plugin manifest
 .claude-plugin/plugin.json         Claude Code plugin manifest
+.claude-plugin/marketplace.json    Claude Code marketplace metadata
 .agents/plugins/marketplace.json Codex repo marketplace metadata
 plugins/humanizer-kr/              Codex marketplace-installable plugin package
 skills/humanizer-kr/SKILL.md       Shared skill instructions
@@ -70,13 +71,32 @@ This repository also includes a Claude Code plugin manifest:
 .claude-plugin/plugin.json
 ```
 
-Load the repository as a local Claude Code plugin using the Claude tooling available in your environment. Depending on the Claude Code version and install path, the skill may be invoked under the plugin namespace, for example:
+Add the repository as a Claude Code marketplace, then install the plugin:
+
+```bash
+claude plugin marketplace add hjongc/humanizer-kr
+claude plugin install humanizer-kr@humanizer-kr-marketplace
+```
+
+For an immutable install, pin the release tag when your Claude Code version supports refs in marketplace sources, or clone this repository at `v0.1.1` and add the local path:
+
+```bash
+git clone --branch v0.1.1 https://github.com/hjongc/humanizer-kr.git
+claude plugin marketplace add ./humanizer-kr
+claude plugin install humanizer-kr@humanizer-kr-marketplace
+```
+
+Depending on the Claude Code version and install path, the skill may be invoked under the plugin namespace, for example:
 
 ```text
 /humanizer-kr:humanizer-kr
 ```
 
-Run the Claude plugin validator if it is available in your local Claude Code installation before publishing.
+Validate the plugin before publishing or debugging local changes:
+
+```bash
+claude plugin validate plugins/humanizer-kr
+```
 
 ## Use
 

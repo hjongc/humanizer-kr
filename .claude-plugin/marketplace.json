@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "humanizer-kr-marketplace",
+  "description": "Korean writing skills for natural, source-grounded rewrites in Claude Code.",
+  "owner": {
+    "name": "humanizer-kr contributors"
+  },
+  "plugins": [
+    {
+      "name": "humanizer-kr",
+      "description": "Rewrite and review Korean drafts so they sound natural, human, and source-grounded rather than AI-generated or translation-like.",
+      "author": {
+        "name": "humanizer-kr contributors"
+      },
+      "category": "writing",
+      "source": "./plugins/humanizer-kr",
+      "homepage": "https://github.com/hjongc/humanizer-kr"
+    }
+  ]
+}

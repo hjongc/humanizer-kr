@@ -27,7 +27,9 @@ Use this checklist before publishing Humanizer KR to GitHub, a Codex marketplace
 ## Claude Code
 
 - [ ] Load the local plugin directory.
-- [ ] Validate the Claude plugin with the installed Claude tooling, if available.
+- [ ] Add this repo as a Claude marketplace in a temporary `HOME`.
+- [ ] Confirm `claude plugin install humanizer-kr@humanizer-kr-marketplace` succeeds.
+- [ ] Validate the Claude plugin with the installed Claude tooling.
 - [ ] Invoke the skill through the Claude plugin namespace.
 - [ ] Confirm the rewritten answer preserves facts and does not add invented claims.
 
