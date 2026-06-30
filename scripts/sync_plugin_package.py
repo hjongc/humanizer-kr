@@ -13,6 +13,7 @@ SYNC_PATHS = [
     ".codex-plugin",
     ".claude-plugin/plugin.json",
     "skills",
+    "examples",
     "LICENSE",
     "README.md",
     "README.en.md",

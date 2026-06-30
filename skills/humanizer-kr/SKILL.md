@@ -97,13 +97,13 @@ Fix by choosing one relationship with the reader and maintaining it.
 
 ### 8. English-First Word Choice
 
-Watch unnecessary loanwords and literal translations: `인사이트`, `임팩트`, `니즈`, `밸류`, `핵심 밸류`, `퍼포먼스`, `이슈`, `딜리버리`, `온보딩`.
+Watch unnecessary loanwords and literal translations: `인사이트`, `임팩트`, `니즈`, `밸류`, `핵심 밸류`, `퍼포먼스`, `이슈`, `딜리버리`, `온보딩`, `어프로치`, `커뮤니케이션`.
 
 Use Korean alternatives when they are clearer, but do not force replacements for established technical terms. For difficult Chinese-character words or foreign words, consult `references/korean-source-rules.md`.
 
 ### 9. Punctuation and Parenthesis Clutter
 
-Watch stacked parentheses, slash pairs, quote marks around ordinary words, and decorative punctuation. Korean text often becomes more natural when the sentence is split rather than packed.
+Watch stacked parentheses, slash pairs, quote marks around ordinary words, arrows, and decorative punctuation. Korean text often becomes more natural when the sentence is split rather than packed.
 
 Before: `본 기능은 사용자(관리자/운영자)의 업무 효율(생산성)을 높입니다.`
 After: `이 기능은 관리자와 운영자의 반복 업무를 줄입니다.`
@@ -117,6 +117,96 @@ Cut assistant scaffolding unless the user explicitly wants a reply draft:
 - `아래와 같이 정리해 드립니다`
 - `도움이 되었으면 좋겠습니다`
 - `필요하시면 더 도와드리겠습니다`
+
+### 11. Honorific Padding
+
+Watch over-polite forms that make service copy sound indirect: `사용자님께서는`, `확인하시어`, `참고 부탁드립니다`, `진행 부탁드립니다`, `이용에 참고하여 주시기 바랍니다`.
+
+Fix by keeping respect but removing ceremonial padding.
+
+Before: `사용자님께서는 아래 내용을 확인하시어 이용에 참고 부탁드립니다.`
+After: `아래 내용을 확인해 주세요.`
+
+### 12. Knowledge-Gap Disclaimers and Speculative Filler
+
+Watch: `구체적인 정보는 제한적이지만`, `알려진 바는 많지 않지만`, `공개된 자료에 따르면`, `추정됩니다`, `가능성이 있습니다` when the sentence then invents plausible detail.
+
+Fix by saying what is known, asking for a source, or cutting the claim.
+
+Before: `구체적인 정보는 제한적이지만 업계에서 중요한 역할을 한 것으로 보입니다.`
+After: `현재 초안에는 역할을 확인할 근거가 없습니다.`
+
+### 13. Generic Positive Conclusions
+
+Watch endings such as `앞으로의 행보가 기대됩니다`, `더 나은 미래를 만들어갈 것입니다`, `지속적인 성장이 기대됩니다`, `좋은 결과를 기대할 수 있습니다`.
+
+Fix with a concrete next step, known plan, or a modest close.
+
+Before: `앞으로도 더 나은 경험을 제공하며 성장해 나갈 것입니다.`
+After: `다음 업데이트에서는 검색 필터와 저장 기능을 먼저 개선합니다.`
+
+### 14. Hedging Stacks
+
+Watch stacked uncertainty: `아마도`, `어쩌면`, `일부`, `상당히`, `비교적`, `가능성이 있습니다`, `할 수 있을 것으로 보입니다`.
+
+Fix by choosing the strongest claim the evidence supports.
+
+Before: `상당히 긍정적인 영향을 줄 수 있을 것으로 보입니다.`
+After: `반복 입력 시간을 줄일 수 있습니다.`
+
+### 15. Heading Warm-ups
+
+Watch headings followed by a generic one-line setup: `중요합니다`, `살펴보겠습니다`, `알아보겠습니다`, `다음과 같습니다`.
+
+Fix by letting the heading do its job and starting with the actual content.
+
+Before: `## 사용 방법\n사용 방법은 다음과 같습니다.\n먼저 계정을 만듭니다.`
+After: `## 사용 방법\n먼저 계정을 만듭니다.`
+
+### 16. Bold-Label Lists
+
+Watch vertical lists where every item is `**라벨:** 설명`. This is useful in some UI specs, but in ordinary prose it often reads like chatbot output.
+
+Fix by using normal bullets, a table, or a paragraph.
+
+Before: `- **속도:** 속도가 개선되었습니다.`
+After: `- 페이지가 더 빨리 열립니다.`
+
+### 17. Sycophantic or Fake-Candid Openers
+
+Watch: `좋은 질문입니다`, `맞습니다`, `정확히 보셨습니다`, `솔직히 말하면`, `사실은`, `핵심은` when used as a theatrical opener rather than content.
+
+Fix by answering directly.
+
+Before: `좋은 질문입니다. 핵심은 사용자가 쉽게 이해하는 것입니다.`
+After: `사용자가 바로 이해할 수 있어야 합니다.`
+
+### 18. Synonym Cycling
+
+Watch needless variation for the same noun: `사용자`, `고객`, `이용자`, `클라이언트` all referring to the same person in one short text.
+
+Fix by repeating the clearest term.
+
+Before: `사용자는 설정을 저장하고, 고객은 결과를 확인하며, 이용자는 알림을 받습니다.`
+After: `사용자는 설정을 저장하고 결과와 알림을 확인합니다.`
+
+### 19. Change-Anchored Documentation
+
+Watch docs or comments that narrate what changed instead of describing the current behavior: `기존 방식 대신`, `새롭게 추가된`, `개선되었습니다`, `변경되었습니다`.
+
+Fix by describing the current system unless the document is a changelog or migration guide.
+
+Before: `기존 수동 입력 방식을 개선해 자동 저장 기능이 추가되었습니다.`
+After: `입력한 내용은 자동으로 저장됩니다.`
+
+### 20. Uniform Cadence and Slogan Rhythm
+
+Watch every sentence landing with the same length, same ending, or slogan-like fragments: `빠릅니다. 쉽습니다. 강력합니다.`
+
+Fix with concrete detail and varied sentence length.
+
+Before: `빠릅니다. 간단합니다. 강력합니다. 모든 팀에 적합합니다.`
+After: `처음에는 기본 템플릿으로 시작하고, 팀이 자주 쓰는 항목만 나중에 추가할 수 있습니다.`
 
 ## Source-Grounded Korean
 

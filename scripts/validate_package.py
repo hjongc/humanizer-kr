@@ -43,6 +43,19 @@ def validate_manifest(path: Path, expected_skills: str, *, release: bool) -> Non
         require(repo_url != PLACEHOLDER, f"{path} still uses placeholder repository URL")
 
 
+def validate_versions() -> None:
+    codex = load_json(ROOT / ".codex-plugin" / "plugin.json")
+    claude = load_json(ROOT / ".claude-plugin" / "plugin.json")
+    codex_version = str(codex.get("version", ""))
+    claude_version = str(claude.get("version", ""))
+    require(codex_version == claude_version, "Codex and Claude plugin versions must match")
+
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    latest = re.search(r"^##\s+([0-9]+\.[0-9]+\.[0-9]+)\s+-", changelog, re.MULTILINE)
+    require(latest is not None, "CHANGELOG.md missing latest version heading")
+    require(codex_version == latest.group(1), "plugin manifest versions must match latest CHANGELOG.md version")
+
+
 def validate_skill() -> None:
     skill_path = ROOT / "skills" / "humanizer-kr" / "SKILL.md"
     require(skill_path.exists(), "skills/humanizer-kr/SKILL.md is missing")
@@ -114,6 +127,18 @@ def validate_packaged_plugin_copy() -> None:
         "skills/humanizer-kr/SKILL.md",
         "skills/humanizer-kr/references/korean-source-rules.md",
         "skills/humanizer-kr/scripts/audit_korean_text.py",
+        "examples/product-copy.before.ko.md",
+        "examples/product-copy.after.ko.md",
+        "examples/public-notice.before.ko.md",
+        "examples/public-notice.after.ko.md",
+        "examples/support-email.before.ko.md",
+        "examples/support-email.after.ko.md",
+        "examples/proposal.before.ko.md",
+        "examples/proposal.after.ko.md",
+        "examples/docs.before.ko.md",
+        "examples/docs.after.ko.md",
+        "examples/social-post.before.ko.md",
+        "examples/social-post.after.ko.md",
         "LICENSE",
         "README.md",
         "README.en.md",
@@ -146,6 +171,7 @@ def main() -> None:
     args = parser.parse_args()
     validate_manifest(ROOT / ".codex-plugin" / "plugin.json", "./skills/", release=args.release)
     validate_manifest(ROOT / ".claude-plugin" / "plugin.json", "./skills/", release=args.release)
+    validate_versions()
     validate_skill()
     validate_references()
     validate_marketplace()

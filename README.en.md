@@ -6,6 +6,31 @@ Humanizer KR is a Korean-specialized writing skill for Codex and Claude Code. It
 
 It is designed for product copy, public notices, emails, documentation, proposals, posts, and other Korean drafts where stiff translationese, inflated claims, or chatbot-like structure make the writing feel less human.
 
+## 20 Korean AI-writing patterns
+
+Humanizer KR covers Korean-specific patterns that do not map cleanly to English AI-writing checklists:
+
+1. translation-like connectors
+2. inflated praise
+3. nominalized Korean
+4. passive or availability chains
+5. vague authority and unsupported claims
+6. over-structured chatbot formatting
+7. register drift
+8. English-first word choice
+9. punctuation and parenthesis clutter
+10. chatbot artifacts
+11. honorific padding
+12. knowledge-gap disclaimers and speculative filler
+13. generic positive conclusions
+14. stacked hedging
+15. heading warm-ups
+16. bold-label lists
+17. sycophantic or fake-candid openers
+18. synonym cycling
+19. change-anchored documentation
+20. uniform cadence and slogan rhythm
+
 ## What it does
 
 - Rewrites Korean drafts while preserving meaning, facts, paragraph coverage, and register.
@@ -80,10 +105,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.3` and add the local path:
+For an immutable install, clone this repository at `v0.1.4` and add the local path:
 
 ```bash
-git clone --branch v0.1.3 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.4 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -172,6 +197,10 @@ See `RELEASE_CHECKLIST.md` for the full publishing checklist.
 
 - `examples/product-copy.before.ko.md` -> `examples/product-copy.after.ko.md`
 - `examples/public-notice.before.ko.md` -> `examples/public-notice.after.ko.md`
+- `examples/support-email.before.ko.md` -> `examples/support-email.after.ko.md`
+- `examples/proposal.before.ko.md` -> `examples/proposal.after.ko.md`
+- `examples/docs.before.ko.md` -> `examples/docs.after.ko.md`
+- `examples/social-post.before.ko.md` -> `examples/social-post.after.ko.md`
 
 The example outputs are reference rewrites, not the only acceptable answers.
 
