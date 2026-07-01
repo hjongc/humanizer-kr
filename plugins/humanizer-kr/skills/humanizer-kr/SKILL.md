@@ -36,177 +36,67 @@ Do not "upgrade" the user's voice into generic polished Korean. If the sample is
 
 ## Korean AI-Writing Tells
 
-Look for clusters, not isolated words. A single `또한` or `혁신적인` is not a problem; repeated formulaic rhythm is.
+Look for clusters, not isolated words. The five groups below are the editing frame; the 20 patterns are observation signals, not banned words. Apply them after identifying the genre, reader, and register.
 
-### 1. Translationese Connectors
+### 1. Evidence and Claim Strength
 
-Watch: `또한`, `더 나아가`, `이를 통해`, `나아가`, `결과적으로`, `전반적으로`, `궁극적으로`, `이러한 점에서`.
+Fix sentences where the claim is larger than the evidence. Lower broad claims into verified facts, specific actions, conditions, or explicit uncertainty.
 
-Fix by removing the signpost or naming the actual relationship.
+- Inflated praise: when `혁신적인`, `최적화된`, `강력한`, or similar praise appears before evidence, replace it with the actual feature, result, or behavior.
+- Vague authority: when `많은 전문가들은`, `업계에서는`, or `여러 연구에 따르면` lacks a source, add a specific source, narrow the claim, or remove the authority frame.
+- Knowledge-gap disclaimer: when `정보는 제한적이지만` or `알려진 바는 많지 않지만` leads into speculation, separate what is known from what is unknown.
+- Generic positive conclusion: replace `앞으로의 행보가 기대됩니다` or `좋은 결과가 기대됩니다` with a known next step, plan, or modest close.
+- Hedging stack: when `상당히`, `비교적`, `~로 보입니다`, and `~할 수 있을 것으로 예상됩니다` pile up, keep the strongest claim the evidence supports.
 
-Before: `또한, 이를 통해 사용자는 더 나은 경험을 얻을 수 있습니다.`
-After: `사용자는 더 빨리 찾고 덜 헤맵니다.`
+Before: `다음 업데이트에서 검색 필터와 저장 기능을 먼저 개선하며 앞으로의 행보가 기대됩니다.`
+After: `다음 업데이트에서는 검색 필터와 저장 기능을 먼저 개선합니다.`
 
-### 2. Inflated Praise
+### 2. Translationese and Vocabulary Density
 
-Watch: `혁신적인`, `획기적인`, `차별화된`, `몰입감 있는`, `탁월한`, `최적화된`, `강력한`, `완벽한`, `풍부한`, `새로운 가능성`.
+Fix wording that sounds like a translated outline or business-English draft. Prefer Korean relationships, natural collocations, and terms the reader actually uses.
 
-Fix with evidence or a smaller claim.
+- Translationese connectors: when `또한`, `이를 통해`, `더 나아가`, `결과적으로`, or `전반적으로` repeats, remove the signpost or name the real relationship.
+- English-first wording: replace `인사이트`, `니즈`, `밸류`, `퍼포먼스`, `어프로치`, or `커뮤니케이션` only when a clearer Korean term fits the reader; also reduce stiff abstract wording when it hides the action.
+- Synonym cycling: when `사용자`, `고객`, `이용자`, and `클라이언트` refer to the same person, keep the clearest term consistent.
 
-Before: `혁신적인 기능으로 최적화된 사용자 경험을 제공합니다.`
-After: `검색어를 입력하면 관련 문서를 한 화면에서 비교할 수 있습니다.`
+Before: `또한, 이를 통해 사용자는 필요한 정보를 더 빠르게 찾고 헤매는 시간을 줄일 수 있습니다.`
+After: `사용자는 필요한 정보를 더 빨리 찾고 덜 헤맵니다.`
 
-### 3. Nominalized Korean
+### 3. Actors and Verbs
 
-Watch chains of `-화`, `-성`, `-적`, `-함`, `것`, `부분`, `측면`, `과정`, `기반으로`, `중심으로`.
+Fix sentences where action disappears into nouns, passive endings, or vague availability claims. Make the actor and verb visible when the genre allows it.
 
-Fix with verbs and concrete subjects.
+- Nominalized Korean: turn chains of `-화`, `-성`, `-적`, `것`, `부분`, `측면`, `기반으로`, or `중심으로` into verbs and concrete subjects.
+- Passive or availability chains: when `제공됩니다`, `진행됩니다`, `확인됩니다`, `가능합니다`, `저장됩니다`, or `처리됩니다` repeats, name who or what acts.
 
-Before: `업무 효율성 향상을 위한 자동화 기능 제공이 가능합니다.`
+Before: `반복 업무 효율성 향상을 위한 자동화 기능 제공이 가능합니다.`
 After: `반복 업무를 자동으로 처리해 시간을 줄입니다.`
 
-### 4. `있습니다` and Passive Chains
+### 4. Register and Relationship
 
-Watch repeated `있습니다`, `제공됩니다`, `진행됩니다`, `확인됩니다`, `가능합니다`, `기대됩니다`.
+Fix the relationship with the reader before polishing individual words. Keep respect, but remove ceremonial padding and empty friendliness.
 
-Fix by naming the actor or switching to a direct verb.
-
-Before: `설정 변경이 가능하며 결과는 자동으로 저장됩니다.`
-After: `설정을 바꾸면 시스템이 결과를 자동으로 저장합니다.`
-
-### 5. Vague Authority and Unsupported Claims
-
-Watch: `많은 전문가들은`, `업계에서는`, `여러 연구에 따르면`, `사용자들은 원합니다`, `대부분의 사람들은`.
-
-Fix with a specific source, a direct observation, or a narrower statement.
-
-Before: `많은 전문가들은 이 방식이 중요하다고 말합니다.`
-After: `이 방식은 장애가 난 지점을 로그에서 바로 확인할 때 유용합니다.`
-
-### 6. Over-structured Chatbot Formatting
-
-Watch bullet lists where every item starts with a bold label and colon, forced groups of three, generic sections such as `핵심 요약`, `기대 효과`, `결론`, and warm-up lines that restate the heading.
-
-Fix by merging, cutting labels, or keeping only the list items that help scanning.
-
-### 7. Register Drift
-
-Watch mixed endings: `합니다` in one sentence, `해요` in the next, then `해야 한다`; or excessive honorifics such as `사용자님께서는`.
-
-Fix by choosing one relationship with the reader and maintaining it.
-
-### 8. English-First Word Choice
-
-Watch unnecessary loanwords and literal translations: `인사이트`, `임팩트`, `니즈`, `밸류`, `핵심 밸류`, `퍼포먼스`, `이슈`, `딜리버리`, `온보딩`, `어프로치`, `커뮤니케이션`.
-
-Use Korean alternatives when they are clearer, but do not force replacements for established technical terms. For difficult Chinese-character words or foreign words, consult `references/korean-source-rules.md`.
-
-### 9. Punctuation and Parenthesis Clutter
-
-Watch stacked parentheses, slash pairs, quote marks around ordinary words, arrows, and decorative punctuation. Korean text often becomes more natural when the sentence is split rather than packed.
-
-Before: `본 기능은 사용자(관리자/운영자)의 업무 효율(생산성)을 높입니다.`
-After: `이 기능은 관리자와 운영자의 반복 업무를 줄입니다.`
-
-### 10. Chatbot Artifacts
-
-Cut assistant scaffolding unless the user explicitly wants a reply draft:
-
-- `물론입니다`
-- `좋은 질문입니다`
-- `아래와 같이 정리해 드립니다`
-- `도움이 되었으면 좋겠습니다`
-- `필요하시면 더 도와드리겠습니다`
-
-### 11. Honorific Padding
-
-Watch over-polite forms that make service copy sound indirect: `사용자님께서는`, `확인하시어`, `참고 부탁드립니다`, `진행 부탁드립니다`, `이용에 참고하여 주시기 바랍니다`.
-
-Fix by keeping respect but removing ceremonial padding.
+- Register drift: do not mix `합니다`, `해요`, and `해야 한다` unless the source voice clearly does so on purpose.
+- Chatbot artifacts: cut `물론입니다`, `좋은 질문입니다`, `아래와 같이 정리해 드립니다`, and similar assistant scaffolding unless drafting a chat reply.
+- Honorific padding: simplify `사용자님께서는`, `확인하시어`, `참고 부탁드립니다`, and `이용에 참고하여 주시기 바랍니다` while keeping polite intent.
+- Sycophantic or fake-candid openers: remove `정확히 보셨습니다`, `솔직히 말하면`, `사실은`, or `핵심은` when they add drama without content.
 
 Before: `사용자님께서는 아래 내용을 확인하시어 이용에 참고 부탁드립니다.`
 After: `아래 내용을 확인해 주세요.`
 
-### 12. Knowledge-Gap Disclaimers and Speculative Filler
+### 5. Structure and Rhythm
 
-Watch: `구체적인 정보는 제한적이지만`, `알려진 바는 많지 않지만`, `공개된 자료에 따르면`, `추정됩니다`, `가능성이 있습니다` when the sentence then invents plausible detail.
+Fix formulaic structure only when it makes the text less useful. Lists, labels, and slogans are allowed when the genre needs them; otherwise keep the shape simple.
 
-Fix by saying what is known, asking for a source, or cutting the claim.
+- Over-structured chatbot formatting: reduce forced groups of three, generic `핵심 요약` or `기대 효과` sections, and label-heavy summaries when they do not aid scanning.
+- Punctuation and parenthesis clutter: split sentences packed with parentheses, slash pairs, decorative quotes, arrows, or repeated colons.
+- Heading warm-ups: let headings do their job; cut `살펴보겠습니다`, `알아보겠습니다`, and `다음과 같습니다` when they only repeat the heading.
+- Bold-label lists: replace repeated `**라벨:** 설명` bullets with normal bullets, a table, or prose unless label-heavy scanning is needed.
+- Change-anchored documentation: describe the current behavior instead of `새롭게 추가된`, `개선되었습니다`, or `변경되었습니다`, except in changelogs or migration guides.
+- Uniform cadence and slogan rhythm: vary sentence length when every sentence lands like `빠릅니다. 간단합니다. 강력합니다.`
 
-Before: `구체적인 정보는 제한적이지만 업계에서 중요한 역할을 한 것으로 보입니다.`
-After: `현재 초안에는 역할을 확인할 근거가 없습니다.`
-
-### 13. Generic Positive Conclusions
-
-Watch endings such as `앞으로의 행보가 기대됩니다`, `더 나은 미래를 만들어갈 것입니다`, `지속적인 성장이 기대됩니다`, `좋은 결과를 기대할 수 있습니다`.
-
-Fix with a concrete next step, known plan, or a modest close.
-
-Before: `앞으로도 더 나은 경험을 제공하며 성장해 나갈 것입니다.`
-After: `다음 업데이트에서는 검색 필터와 저장 기능을 먼저 개선합니다.`
-
-### 14. Hedging Stacks
-
-Watch stacked uncertainty: `아마도`, `어쩌면`, `일부`, `상당히`, `비교적`, `가능성이 있습니다`, `할 수 있을 것으로 보입니다`.
-
-Fix by choosing the strongest claim the evidence supports.
-
-Before: `상당히 긍정적인 영향을 줄 수 있을 것으로 보입니다.`
-After: `반복 입력 시간을 줄일 수 있습니다.`
-
-### 15. Heading Warm-ups
-
-Watch headings followed by a generic one-line setup: `중요합니다`, `살펴보겠습니다`, `알아보겠습니다`, `다음과 같습니다`.
-
-Fix by letting the heading do its job and starting with the actual content.
-
-Before: `## 사용 방법\n사용 방법은 다음과 같습니다.\n먼저 계정을 만듭니다.`
-After: `## 사용 방법\n먼저 계정을 만듭니다.`
-
-### 16. Bold-Label Lists
-
-Watch vertical lists where every item is `**라벨:** 설명`. This is useful in some UI specs, but in ordinary prose it often reads like chatbot output.
-
-Fix by using normal bullets, a table, or a paragraph.
-
-Before: `- **속도:** 속도가 개선되었습니다.`
-After: `- 페이지가 더 빨리 열립니다.`
-
-### 17. Sycophantic or Fake-Candid Openers
-
-Watch: `좋은 질문입니다`, `맞습니다`, `정확히 보셨습니다`, `솔직히 말하면`, `사실은`, `핵심은` when used as a theatrical opener rather than content.
-
-Fix by answering directly.
-
-Before: `좋은 질문입니다. 핵심은 사용자가 쉽게 이해하는 것입니다.`
-After: `사용자가 바로 이해할 수 있어야 합니다.`
-
-### 18. Synonym Cycling
-
-Watch needless variation for the same noun: `사용자`, `고객`, `이용자`, `클라이언트` all referring to the same person in one short text.
-
-Fix by repeating the clearest term.
-
-Before: `사용자는 설정을 저장하고, 고객은 결과를 확인하며, 이용자는 알림을 받습니다.`
-After: `사용자는 설정을 저장하고 결과와 알림을 확인합니다.`
-
-### 19. Change-Anchored Documentation
-
-Watch docs or comments that narrate what changed instead of describing the current behavior: `기존 방식 대신`, `새롭게 추가된`, `개선되었습니다`, `변경되었습니다`.
-
-Fix by describing the current system unless the document is a changelog or migration guide.
-
-Before: `기존 수동 입력 방식을 개선해 자동 저장 기능이 추가되었습니다.`
-After: `입력한 내용은 자동으로 저장됩니다.`
-
-### 20. Uniform Cadence and Slogan Rhythm
-
-Watch every sentence landing with the same length, same ending, or slogan-like fragments: `빠릅니다. 쉽습니다. 강력합니다.`
-
-Fix with concrete detail and varied sentence length.
-
-Before: `빠릅니다. 간단합니다. 강력합니다. 모든 팀에 적합합니다.`
-After: `처음에는 기본 템플릿으로 시작하고, 팀이 자주 쓰는 항목만 나중에 추가할 수 있습니다.`
+Before: `## 설정\n설정 방법을 살펴보겠습니다.\n알림을 끄려면 설정에서 알림 옵션을 해제합니다.`
+After: `## 설정\n알림을 끄려면 설정에서 알림 옵션을 해제합니다.`
 
 ## Source-Grounded Korean
 

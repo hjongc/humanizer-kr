@@ -6,30 +6,25 @@ Humanizer KR is a Korean-specialized writing skill for Codex and Claude Code. It
 
 It is designed for product copy, public notices, emails, documentation, proposals, posts, and other Korean drafts where stiff translationese, inflated claims, or chatbot-like structure make the writing feel less human.
 
-## 20 Korean AI-writing patterns
+## 5 editing groups, 20 observation patterns
 
-Humanizer KR covers Korean-specific patterns that do not map cleanly to English AI-writing checklists:
+Humanizer KR does not treat the 20 patterns as a flat banned-word list. The skill rewrites through five editing groups, then uses the 20 patterns as Korean-specific observation signals inside those groups.
 
-1. translation-like connectors
-2. inflated praise
-3. nominalized Korean
-4. passive or availability chains
-5. vague authority and unsupported claims
-6. over-structured chatbot formatting
-7. register drift
-8. English-first word choice
-9. punctuation and parenthesis clutter
-10. chatbot artifacts
-11. honorific padding
-12. knowledge-gap disclaimers and speculative filler
-13. generic positive conclusions
-14. stacked hedging
-15. heading warm-ups
-16. bold-label lists
-17. sycophantic or fake-candid openers
-18. synonym cycling
-19. change-anchored documentation
-20. uniform cadence and slogan rhythm
+1. Evidence and claim strength
+2. Translationese and vocabulary density
+3. Actors and verbs
+4. Register and relationship
+5. Structure and rhythm
+
+The 20 documented patterns are:
+
+| Group | Patterns |
+| --- | --- |
+| Evidence and claim strength | inflated praise, vague authority, knowledge-gap disclaimers, generic positive conclusions, stacked hedging |
+| Translationese and vocabulary density | translation-like connectors, English-first word choice, synonym cycling |
+| Actors and verbs | nominalized Korean, passive or availability chains |
+| Register and relationship | register drift, chatbot artifacts, honorific padding, sycophantic or fake-candid openers |
+| Structure and rhythm | over-structured chatbot formatting, punctuation and parenthesis clutter, heading warm-ups, bold-label lists, change-anchored documentation, uniform cadence and slogan rhythm |
 
 ## What it does
 
@@ -105,10 +100,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.4` and add the local path:
+For an immutable install, clone this repository at `v0.1.5` and add the local path:
 
 ```bash
-git clone --branch v0.1.4 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.5 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```

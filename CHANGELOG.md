@@ -2,6 +2,12 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.5 - 2026-07-01
+
+- Reorganized the skill guidance around 5 editing groups while keeping 20 Korean observation patterns.
+- Clarified that the 20 patterns are clustered review signals, not a flat banned-word checklist.
+- Updated Korean and English README docs to show the 5-group structure and pattern mapping.
+
 ## 0.1.4 - 2026-06-30
 
 - Rebuilt the Korean README around the `blader/humanizer` public skill documentation flow.
