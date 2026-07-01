@@ -11,7 +11,7 @@ Use this checklist before publishing Humanizer KR to GitHub, a Codex marketplace
 - [ ] Confirm `skills/humanizer-kr/SKILL.md` has frontmatter with `name` and `description`.
 - [ ] Confirm every script referenced by `SKILL.md` exists.
 - [ ] Run `python3 scripts/sync_plugin_package.py`.
-- [ ] Run `python3 scripts/validate_package.py`.
+- [ ] Run `python3 scripts/validate_package.py --release`.
 - [ ] Run the audit script against at least one example file.
 
 ## Codex
@@ -36,5 +36,5 @@ Use this checklist before publishing Humanizer KR to GitHub, a Codex marketplace
 ## Public Release
 
 - [ ] Add GitHub topics or README badges only after the repository is live.
-- [ ] Tag the release as `v0.1.0`.
+- [ ] Tag the release with the version in `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, and the latest `CHANGELOG.md` heading.
 - [ ] Keep marketplace entries pointing at an immutable tag or commit SHA for public distribution.

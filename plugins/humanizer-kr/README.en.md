@@ -100,10 +100,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.5` and add the local path:
+For an immutable install, clone this repository at `v0.1.6` and add the local path:
 
 ```bash
-git clone --branch v0.1.5 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.6 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -177,7 +177,7 @@ python3 scripts/sync_plugin_package.py
 Then run the package validator from the repository root. It checks both the root authoring copy and the marketplace package copy:
 
 ```bash
-python3 scripts/validate_package.py
+python3 scripts/validate_package.py --release
 ```
 
 Then run a content smoke test:

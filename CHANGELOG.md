@@ -2,6 +2,11 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.6 - 2026-07-01
+
+- Updated release documentation to use the stricter package validator.
+- Corrected the release checklist so release tags follow the manifest and changelog version.
+
 ## 0.1.5 - 2026-07-01
 
 - Reorganized the skill guidance around 5 editing groups while keeping 20 Korean observation patterns.
