@@ -2,6 +2,11 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.7 - 2026-07-01
+
+- Reorganized the Korean README pattern section into 5 core groups with grouped before/after pattern tables.
+- Updated immutable install references to `v0.1.7`.
+
 ## 0.1.6 - 2026-07-01
 
 - Updated release documentation to use the stricter package validator.
