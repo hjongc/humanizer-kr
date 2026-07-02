@@ -6,9 +6,7 @@ Humanizer KR is a Korean-specialized writing skill for Codex and Claude Code. It
 
 It is designed for product copy, public notices, emails, documentation, proposals, posts, and other Korean drafts where stiff translationese, inflated claims, or chatbot-like structure make the writing feel less human.
 
-![Humanizer KR overview](assets/humanizer-kr-overview-en.png)
-
-## See the difference first
+## Example
 
 Humanizer KR does not make Korean copy louder. It removes the padding, inflated claims, and translated-outline rhythm so the reader can understand the point faster. In business contexts, it keeps useful business language instead of flattening everything into plain everyday Korean.
 
@@ -19,12 +17,6 @@ Humanizer KR does not make Korean copy louder. It removes the padding, inflated 
 **After**
 
 > 물을 충분히 마시면 몸의 수분 균형을 유지하는 데 도움이 됩니다. 일상에서 컨디션을 관리하기에도 좋습니다.
-
-**After one more quality pass**
-
-> 물을 충분히 마시면 몸의 수분 균형을 유지하는 데 도움이 됩니다. 컨디션 관리에도 좋습니다.
-
-The first rewrite should be safe. The final rewrite should also fit the genre, reader, rhythm, and action. See `examples/evals/output-sample-loop.ko.md` for a sample output-improvement loop.
 
 ## When to use it
 
@@ -113,10 +105,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.9` and add the local path:
+For an immutable install, clone this repository at `v0.1.10` and add the local path:
 
 ```bash
-git clone --branch v0.1.9 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.10 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```

@@ -2,6 +2,12 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.10 - 2026-07-02
+
+- Removed README overview images from the public Korean and English docs.
+- Simplified the opening example so it ends at the Before/After rewrite.
+- Updated install snippets to point at the `v0.1.10` release tag.
+
 ## 0.1.9 - 2026-07-02
 
 - Added `--fail-on-findings` to make the Korean audit helper usable as a local quality gate.
