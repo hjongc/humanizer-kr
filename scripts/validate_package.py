@@ -71,8 +71,14 @@ def validate_skill() -> None:
 
 
 def validate_references() -> None:
-    refs = ROOT / "skills" / "humanizer-kr" / "references" / "korean-source-rules.md"
-    require(refs.exists(), "source-grounding reference is missing")
+    required_refs = [
+        "korean-source-rules.md",
+        "rewriting-playbook.md",
+        "pattern-candidates.md",
+    ]
+    for name in required_refs:
+        refs = ROOT / "skills" / "humanizer-kr" / "references" / name
+        require(refs.exists(), f"{name} reference is missing")
     scripts = ROOT / "skills" / "humanizer-kr" / "scripts" / "audit_korean_text.py"
     require(scripts.exists(), "audit script is missing")
     require(scripts.read_text(encoding="utf-8").startswith("#!/usr/bin/env python3"), "audit script should be executable Python")
@@ -126,6 +132,8 @@ def validate_packaged_plugin_copy() -> None:
         ".claude-plugin/plugin.json",
         "skills/humanizer-kr/SKILL.md",
         "skills/humanizer-kr/references/korean-source-rules.md",
+        "skills/humanizer-kr/references/rewriting-playbook.md",
+        "skills/humanizer-kr/references/pattern-candidates.md",
         "skills/humanizer-kr/scripts/audit_korean_text.py",
         "examples/evals/output-sample-loop.ko.md",
         "examples/product-copy.before.ko.md",

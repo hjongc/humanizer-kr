@@ -27,6 +27,26 @@ def quality_codes(text: str, genre: str = "general") -> set[str]:
     return {item["code"] for item in module.quality_review(text, genre)}
 
 
+AFTER_EXAMPLE_GENRES = {
+    "product-copy.after.ko.md": "product-copy",
+    "public-notice.after.ko.md": "public-notice",
+    "support-email.after.ko.md": "support-email",
+    "proposal.after.ko.md": "proposal",
+    "docs.after.ko.md": "docs",
+    "social-post.after.ko.md": "social-post",
+}
+
+BLOCKED_AFTER_PHRASES = [
+    "혁신적인",
+    "최적화된",
+    "이를 통해",
+    "참고 부탁드립니다",
+    "앞으로의 행보가 기대됩니다",
+    "아래와 같이 정리",
+    "좋은 질문입니다",
+]
+
+
 class AuditKoreanTextTests(unittest.TestCase):
     def test_flags_translationese_and_inflated_praise(self) -> None:
         found = codes("또한 본 솔루션은 혁신적인 경험을 제공합니다. 이를 통해 생산성이 향상됩니다.")
@@ -89,6 +109,27 @@ class AuditKoreanTextTests(unittest.TestCase):
         text = "알림은 설정 메뉴에서 끌 수 있습니다. 같은 문제가 계속되면 오류 화면을 보내 주세요."
         findings = module.quality_review(text, "support-email")
         self.assertEqual(findings, [])
+
+    def test_public_after_examples_avoid_blocked_ai_tells(self) -> None:
+        for name in AFTER_EXAMPLE_GENRES:
+            with self.subTest(example=name):
+                text = (ROOT / "examples" / name).read_text(encoding="utf-8")
+                for phrase in BLOCKED_AFTER_PHRASES:
+                    self.assertNotIn(phrase, text)
+
+    def test_public_after_examples_pass_basic_audit(self) -> None:
+        for name in AFTER_EXAMPLE_GENRES:
+            with self.subTest(example=name):
+                text = (ROOT / "examples" / name).read_text(encoding="utf-8")
+                findings = module.audit(text)
+                self.assertEqual(findings, [])
+
+    def test_public_after_examples_pass_genre_quality_review(self) -> None:
+        for name, genre in AFTER_EXAMPLE_GENRES.items():
+            with self.subTest(example=name, genre=genre):
+                text = (ROOT / "examples" / name).read_text(encoding="utf-8")
+                findings = module.quality_review(text, genre)
+                self.assertEqual(findings, [])
 
 
 if __name__ == "__main__":

@@ -62,6 +62,8 @@ Do not "upgrade" the user's voice into generic polished Korean. If the sample is
 
 Look for clusters, not isolated words. The five groups below are the editing frame; the 20 patterns are observation signals, not banned words. Apply them after identifying the genre, reader, and register.
 
+Read `references/rewriting-playbook.md` when a rewrite needs a concrete edit strategy or when the first pass is safe but still bland. Use `references/pattern-candidates.md` for suspected new patterns; do not promote a new tell into the main workflow until it has evidence, a clean negative example, and regression coverage.
+
 ### 1. Evidence and Claim Strength
 
 Fix sentences where the claim is larger than the evidence. Lower broad claims into verified facts, specific actions, conditions, or explicit uncertainty.
@@ -151,6 +153,8 @@ python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre produ
 ```
 
 Use `--quality` to look for bland-but-clean output, weak reader actions, leftover availability phrasing, and genre mismatch.
+
+Public after examples are regression fixtures. Keep `examples/*.after.ko.md` clean under the basic audit and the genre-specific quality pass unless a future test explicitly documents why a pattern is allowed.
 
 ## Output
 

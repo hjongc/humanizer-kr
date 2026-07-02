@@ -180,6 +180,8 @@ The after examples include multiple rewrite candidates such as a safe version, a
 
 See `skills/humanizer-kr/references/korean-source-rules.md` for the trusted Korean source map and how the skill uses each source.
 
+Use `skills/humanizer-kr/references/rewriting-playbook.md` for pattern-specific rewrite strategies and over-editing guardrails. Use `skills/humanizer-kr/references/pattern-candidates.md` to hold suspected new AI-writing tells before promoting them into the main rules.
+
 ## Limitations
 
 - The skill improves wording and register; it does not verify factual claims unless the user provides sources.

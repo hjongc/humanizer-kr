@@ -247,6 +247,8 @@ Humanizer KR는 이런 표현을 단어 하나만 보고 지우지 않습니다.
 ## 참고 기준
 
 - `skills/humanizer-kr/references/korean-source-rules.md`: 국립국어원 공공언어, 표준국어대사전, 우리말샘, 외래어 표기와 순화어 판단 기준
+- `skills/humanizer-kr/references/rewriting-playbook.md`: 패턴별 윤문 처방과 과윤문 방지 기준
+- `skills/humanizer-kr/references/pattern-candidates.md`: 새 AI 문체 의심 패턴을 본 규칙으로 승격하기 전 모아 두는 후보 목록
 - [Wikipedia: Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing): AI 문체를 패턴 단위로 보는 접근 방식
 - [blader/humanizer](https://github.com/blader/humanizer): README 구성과 패턴 문서화 방식의 참고 프로젝트
 
