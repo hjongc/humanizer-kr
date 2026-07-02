@@ -112,10 +112,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.8` and add the local path:
+For an immutable install, clone this repository at `v0.1.9` and add the local path:
 
 ```bash
-git clone --branch v0.1.8 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.9 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -155,6 +155,20 @@ Use $humanizer-kr to review this Korean copy for AI-like phrasing:
 [paste text]
 ```
 
+### File audit gate
+
+Use the audit helper before publishing Korean files. The basic audit flags AI-writing tells; `--quality` adds a second pass for safe-but-flat wording, weak reader actions, and genre mismatch.
+
+```bash
+python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre product-copy --fail-on-findings examples/product-copy.after.ko.md
+```
+
+To check every public after example with its genre-specific quality pass, run:
+
+```bash
+python3 skills/humanizer-kr/scripts/audit_korean_text.py --after-examples
+```
+
 ### Voice matching
 
 ```text
@@ -180,7 +194,7 @@ The after examples include multiple rewrite candidates such as a safe version, a
 
 See `skills/humanizer-kr/references/korean-source-rules.md` for the trusted Korean source map and how the skill uses each source.
 
-Use `skills/humanizer-kr/references/rewriting-playbook.md` for pattern-specific rewrite strategies and over-editing guardrails. Use `skills/humanizer-kr/references/pattern-candidates.md` to hold suspected new AI-writing tells before promoting them into the main rules.
+Use `skills/humanizer-kr/references/rewriting-playbook.md` for pattern-specific rewrite strategies and over-editing guardrails.
 
 ## Limitations
 

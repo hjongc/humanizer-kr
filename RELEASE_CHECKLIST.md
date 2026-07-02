@@ -12,7 +12,7 @@ Use this checklist before publishing Humanizer KR to GitHub, a Codex marketplace
 - [ ] Confirm every script referenced by `SKILL.md` exists.
 - [ ] Run `python3 scripts/sync_plugin_package.py`.
 - [ ] Run `python3 scripts/validate_package.py --release`.
-- [ ] Run the audit script against at least one example file.
+- [ ] Run `python3 skills/humanizer-kr/scripts/audit_korean_text.py --after-examples`.
 
 ## Codex
 

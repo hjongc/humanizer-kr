@@ -32,6 +32,17 @@ class QualityRule:
     genres: tuple[str, ...] = ()
 
 
+ROOT = Path(__file__).resolve().parents[3]
+AFTER_EXAMPLE_GENRES = {
+    "product-copy.after.ko.md": "product-copy",
+    "public-notice.after.ko.md": "public-notice",
+    "support-email.after.ko.md": "support-email",
+    "proposal.after.ko.md": "proposal",
+    "docs.after.ko.md": "docs",
+    "social-post.after.ko.md": "social-post",
+}
+
+
 RULES = [
     Rule(
         "translationese-connectors",
@@ -290,6 +301,45 @@ def quality_review(text: str, genre: str | None = None) -> list[dict[str, object
     return findings
 
 
+def audit_after_examples(examples_dir: Path | None = None) -> list[dict[str, object]]:
+    root = examples_dir or ROOT / "examples"
+    results: list[dict[str, object]] = []
+    for filename, genre in AFTER_EXAMPLE_GENRES.items():
+        path = root / filename
+        if not path.exists():
+            results.append(
+                {
+                    "path": str(path),
+                    "genre": genre,
+                    "findings": [
+                        {
+                            "code": "missing-after-example",
+                            "label": "missing after example",
+                            "line": None,
+                            "match": filename,
+                            "advice": "Add the paired public after example or remove it from the expected genre map.",
+                        }
+                    ],
+                    "quality_findings": [],
+                }
+            )
+            continue
+        text = path.read_text(encoding="utf-8")
+        results.append(
+            {
+                "path": str(path),
+                "genre": genre,
+                "findings": audit(text),
+                "quality_findings": quality_review(text, genre),
+            }
+        )
+    return results
+
+
+def has_findings(result: dict[str, object]) -> bool:
+    return bool(result["findings"] or result["quality_findings"])
+
+
 def print_findings(findings: list[dict[str, object]]) -> None:
     for item in findings:
         line = f"line {item['line']}" if item["line"] else "whole text"
@@ -303,7 +353,33 @@ def main() -> int:
     parser.add_argument("--genre", choices=["product-copy", "public-notice", "support-email", "proposal", "docs", "social-post", "general"], help="Genre hint for --quality review.")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     parser.add_argument("--quality", action="store_true", help="Also review whether clean output is still flat, vague, or genre-mismatched.")
+    parser.add_argument("--fail-on-findings", action="store_true", help="Exit with status 1 when any audit or quality finding is reported.")
+    parser.add_argument("--after-examples", action="store_true", help="Audit every public examples/*.after.ko.md file with its genre quality rules.")
     args = parser.parse_args()
+
+    if args.after_examples:
+        results = audit_after_examples()
+        if args.json:
+            print(json.dumps({"examples": results}, ensure_ascii=False, indent=2))
+        else:
+            for result in results:
+                path = result["path"]
+                findings = result["findings"]
+                quality_findings = result["quality_findings"]
+                if not findings and not quality_findings:
+                    print(f"{path}: OK")
+                    continue
+                print(path)
+                if findings:
+                    print_findings(findings)
+                if quality_findings:
+                    if findings:
+                        print()
+                    print("Quality review:")
+                    print_findings(quality_findings)
+            if not any(has_findings(result) for result in results):
+                print("All public after examples passed the Korean audit gate.")
+        return 1 if any(has_findings(result) for result in results) else 0
 
     text = read_input(args.path)
     findings = audit(text)
@@ -314,7 +390,7 @@ def main() -> int:
         if args.quality:
             payload["quality_findings"] = quality_findings
         print(json.dumps(payload, ensure_ascii=False, indent=2))
-        return 0
+        return 1 if args.fail_on_findings and (findings or quality_findings) else 0
 
     if not findings and not quality_findings:
         print("No obvious Korean AI-writing tells found.")
@@ -328,7 +404,7 @@ def main() -> int:
         print("Quality review:")
         print_findings(quality_findings)
 
-    return 0
+    return 1 if args.fail_on_findings else 0
 
 
 if __name__ == "__main__":

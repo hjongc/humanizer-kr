@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -130,6 +131,26 @@ class AuditKoreanTextTests(unittest.TestCase):
                 text = (ROOT / "examples" / name).read_text(encoding="utf-8")
                 findings = module.quality_review(text, genre)
                 self.assertEqual(findings, [])
+
+    def test_after_examples_gate_passes_public_examples(self) -> None:
+        results = module.audit_after_examples(ROOT / "examples")
+        self.assertTrue(results)
+        self.assertTrue(all(not item["findings"] and not item["quality_findings"] for item in results))
+
+    def test_fail_on_findings_returns_nonzero_for_cli_gate(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--fail-on-findings",
+            ],
+            input="또한 혁신적인 기능을 제공합니다.",
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("translationese-connectors", result.stdout)
 
 
 if __name__ == "__main__":

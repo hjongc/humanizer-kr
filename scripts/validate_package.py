@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
+import sys
 from pathlib import Path
 
 
@@ -74,7 +76,6 @@ def validate_references() -> None:
     required_refs = [
         "korean-source-rules.md",
         "rewriting-playbook.md",
-        "pattern-candidates.md",
     ]
     for name in required_refs:
         refs = ROOT / "skills" / "humanizer-kr" / "references" / name
@@ -82,6 +83,16 @@ def validate_references() -> None:
     scripts = ROOT / "skills" / "humanizer-kr" / "scripts" / "audit_korean_text.py"
     require(scripts.exists(), "audit script is missing")
     require(scripts.read_text(encoding="utf-8").startswith("#!/usr/bin/env python3"), "audit script should be executable Python")
+
+
+def load_audit_module():
+    script = ROOT / "skills" / "humanizer-kr" / "scripts" / "audit_korean_text.py"
+    spec = importlib.util.spec_from_file_location("audit_korean_text", script)
+    require(spec is not None and spec.loader is not None, "audit script cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def validate_marketplace() -> None:
@@ -133,7 +144,6 @@ def validate_packaged_plugin_copy() -> None:
         "skills/humanizer-kr/SKILL.md",
         "skills/humanizer-kr/references/korean-source-rules.md",
         "skills/humanizer-kr/references/rewriting-playbook.md",
-        "skills/humanizer-kr/references/pattern-candidates.md",
         "skills/humanizer-kr/scripts/audit_korean_text.py",
         "examples/evals/output-sample-loop.ko.md",
         "examples/product-copy.before.ko.md",
@@ -182,6 +192,11 @@ def validate_examples() -> None:
     for before in before_files:
         after = before.with_name(before.name.replace(".before.", ".after."))
         require(after.exists(), f"missing paired after example for {before.name}")
+
+    audit_module = load_audit_module()
+    for result in audit_module.audit_after_examples(examples):
+        findings = result["findings"] + result["quality_findings"]
+        require(not findings, f"{Path(result['path']).name} fails the Korean audit gate")
 
 
 def main() -> None:

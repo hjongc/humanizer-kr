@@ -2,6 +2,13 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.9 - 2026-07-02
+
+- Added `--fail-on-findings` to make the Korean audit helper usable as a local quality gate.
+- Added `--after-examples` to audit every public after example with its genre-specific quality pass.
+- Updated package validation so public after examples must pass the basic and quality audit before release.
+- Removed the speculative pattern-candidates reference from the packaged release surface.
+
 ## 0.1.8 - 2026-07-02
 
 - Added a README overview image and a stronger before/after opening.

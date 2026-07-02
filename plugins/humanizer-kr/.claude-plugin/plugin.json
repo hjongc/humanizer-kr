@@ -1,6 +1,6 @@
 {
   "name": "humanizer-kr",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Korean-specialized writing skill for rewriting AI-sounding Korean into natural, source-grounded Korean.",
   "author": {
     "name": "humanizer-kr contributors"
