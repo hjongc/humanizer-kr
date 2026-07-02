@@ -23,6 +23,15 @@ class Rule:
     advice: str
 
 
+@dataclass(frozen=True)
+class QualityRule:
+    code: str
+    label: str
+    pattern: re.Pattern[str]
+    advice: str
+    genres: tuple[str, ...] = ()
+
+
 RULES = [
     Rule(
         "translationese-connectors",
@@ -123,6 +132,38 @@ RULES = [
 ]
 
 
+QUALITY_RULES = [
+    QualityRule(
+        "weak-reader-action",
+        "weak reader action",
+        re.compile(r"(필요한 조치|조치를 진행|이용에 참고)"),
+        "Name the next action when the source provides it; otherwise add a short missing-detail note.",
+        ("public-notice", "support-email"),
+    ),
+    QualityRule(
+        "generic-subject",
+        "generic product subject",
+        re.compile(r"(?m)^(이 도구|이 서비스|본 기능|본 솔루션)(?:은|는)"),
+        "Use the actual object, workflow, or reader benefit when the source gives enough context.",
+        ("product-copy", "social-post", "docs"),
+    ),
+    QualityRule(
+        "safe-but-flat",
+        "safe but flat wording",
+        re.compile(r"(더 자연스러운 한국어|읽기 편한 문장|문장의 톤|최적화된 경험)"),
+        "Replace meta-language about quality with the concrete change the reader will feel.",
+        ("product-copy", "social-post"),
+    ),
+    QualityRule(
+        "ceremonial-notice",
+        "ceremonial notice phrasing",
+        re.compile(r"(안내드립니다|확인한 뒤|아래 내용)"),
+        "For notices, prefer issue, affected reader, action, and timing when those details exist.",
+        ("public-notice",),
+    ),
+]
+
+
 def read_input(path: str | None) -> str:
     if path:
         return Path(path).read_text(encoding="utf-8")
@@ -148,7 +189,7 @@ def audit(text: str) -> list[dict[str, object]]:
             )
 
     endings = re.findall(r"습니다[.?!]?|니다[.?!]?", text)
-    if len(endings) >= 8:
+    if "##" not in text and len(endings) >= 8:
         findings.append(
             {
                 "code": "repetitive-formal-endings",
@@ -199,27 +240,93 @@ def audit(text: str) -> list[dict[str, object]]:
     return findings
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Audit Korean text for AI-writing tells.")
-    parser.add_argument("path", nargs="?", help="UTF-8 text or Markdown file. Reads stdin when omitted.")
-    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
-    args = parser.parse_args()
+def sentence_count(text: str) -> int:
+    return len([part for part in re.split(r"[.?!]\s*", text) if part.strip()])
 
-    text = read_input(args.path)
-    findings = audit(text)
 
-    if args.json:
-        print(json.dumps({"findings": findings}, ensure_ascii=False, indent=2))
-        return 0
+def quality_review(text: str, genre: str | None = None) -> list[dict[str, object]]:
+    findings: list[dict[str, object]] = []
+    selected_genre = genre or "general"
 
-    if not findings:
-        print("No obvious Korean AI-writing tells found.")
-        return 0
+    for rule in QUALITY_RULES:
+        if rule.genres and selected_genre not in rule.genres:
+            continue
+        for match in rule.pattern.finditer(text):
+            findings.append(
+                {
+                    "code": rule.code,
+                    "label": rule.label,
+                    "line": line_number(text, match.start()),
+                    "match": match.group(0),
+                    "advice": rule.advice,
+                }
+            )
 
+    availability = re.findall(r"할 수 있습니다", text)
+    if len(availability) >= 2:
+        findings.append(
+            {
+                "code": "availability-rhythm",
+                "label": "repeated availability rhythm",
+                "line": None,
+                "match": f"{len(availability)} availability endings",
+                "advice": "Turn at least one sentence into a direct action or current behavior.",
+            }
+        )
+
+    sentences = sentence_count(text)
+    formal_endings = re.findall(r"습니다[.?!]?|니다[.?!]?", text)
+    if "##" not in text and sentences >= 4 and len(formal_endings) == sentences:
+        findings.append(
+            {
+                "code": "uniform-formal-rhythm",
+                "label": "uniform formal rhythm",
+                "line": None,
+                "match": f"{sentences} similar sentence endings",
+                "advice": "Vary sentence length or structure if the genre does not require a formal notice tone.",
+            }
+        )
+
+    return findings
+
+
+def print_findings(findings: list[dict[str, object]]) -> None:
     for item in findings:
         line = f"line {item['line']}" if item["line"] else "whole text"
         print(f"- [{item['code']}] {line}: {item['match']}")
         print(f"  {item['advice']}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Audit Korean text for AI-writing tells.")
+    parser.add_argument("path", nargs="?", help="UTF-8 text or Markdown file. Reads stdin when omitted.")
+    parser.add_argument("--genre", choices=["product-copy", "public-notice", "support-email", "proposal", "docs", "social-post", "general"], help="Genre hint for --quality review.")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    parser.add_argument("--quality", action="store_true", help="Also review whether clean output is still flat, vague, or genre-mismatched.")
+    args = parser.parse_args()
+
+    text = read_input(args.path)
+    findings = audit(text)
+    quality_findings = quality_review(text, args.genre) if args.quality else []
+
+    if args.json:
+        payload = {"findings": findings}
+        if args.quality:
+            payload["quality_findings"] = quality_findings
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+
+    if not findings and not quality_findings:
+        print("No obvious Korean AI-writing tells found.")
+        return 0
+
+    if findings:
+        print_findings(findings)
+    if quality_findings:
+        if findings:
+            print()
+        print("Quality review:")
+        print_findings(quality_findings)
 
     return 0
 

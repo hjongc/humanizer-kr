@@ -127,6 +127,7 @@ def validate_packaged_plugin_copy() -> None:
         "skills/humanizer-kr/SKILL.md",
         "skills/humanizer-kr/references/korean-source-rules.md",
         "skills/humanizer-kr/scripts/audit_korean_text.py",
+        "examples/evals/output-sample-loop.ko.md",
         "examples/product-copy.before.ko.md",
         "examples/product-copy.after.ko.md",
         "examples/public-notice.before.ko.md",
@@ -152,6 +153,15 @@ def validate_packaged_plugin_copy() -> None:
             source.read_text(encoding="utf-8") == packaged.read_text(encoding="utf-8"),
             f"packaged plugin copy is stale for {rel}",
         )
+    binary_paths = [
+        "assets/humanizer-kr-overview.png",
+        "assets/humanizer-kr-overview-en.png",
+    ]
+    for rel in binary_paths:
+        source = ROOT / rel
+        packaged = package_root / rel
+        require(packaged.exists(), f"packaged plugin missing {rel}")
+        require(source.read_bytes() == packaged.read_bytes(), f"packaged plugin copy is stale for {rel}")
 
 
 def validate_examples() -> None:
@@ -160,6 +170,7 @@ def validate_examples() -> None:
     after_files = sorted(examples.glob("*.after.ko.md"))
     require(before_files, "at least one before example is required")
     require(after_files, "at least one after example is required")
+    require((examples / "evals" / "output-sample-loop.ko.md").exists(), "output sample loop fixture is required")
     for before in before_files:
         after = before.with_name(before.name.replace(".before.", ".after."))
         require(after.exists(), f"missing paired after example for {before.name}")

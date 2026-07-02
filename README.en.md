@@ -6,6 +6,34 @@ Humanizer KR is a Korean-specialized writing skill for Codex and Claude Code. It
 
 It is designed for product copy, public notices, emails, documentation, proposals, posts, and other Korean drafts where stiff translationese, inflated claims, or chatbot-like structure make the writing feel less human.
 
+![Humanizer KR overview](assets/humanizer-kr-overview-en.png)
+
+## See the difference first
+
+Humanizer KR does not make Korean copy louder. It removes the padding, inflated claims, and translated-outline rhythm so the reader can understand the point faster.
+
+**Before**
+
+> 또한 본 솔루션은 혁신적인 AI 기술을 기반으로 사용자에게 최적화된 경험을 제공합니다. 이를 통해 업무 효율성 향상과 새로운 가능성 창출이 가능합니다.
+
+**After**
+
+> 이 도구는 반복해서 쓰는 문장을 점검하고, 어색한 표현을 더 자연스러운 한국어로 바꿉니다. 공개 전에 문장의 톤을 한 번 더 맞출 수 있습니다.
+
+**After one more quality pass**
+
+> 반복되는 표현을 찾아 어색한 문장을 줄입니다. 공개하기 전에 초안의 말투와 흐름을 한 번 더 맞출 수 있습니다.
+
+The first rewrite should be safe. The final rewrite should also fit the genre, reader, rhythm, and action. See `examples/evals/output-sample-loop.ko.md` for a sample output-improvement loop.
+
+## When to use it
+
+- Product copy feels flat, overexplained, or too promotional.
+- Notices, emails, and docs are weighed down by ceremonial honorifics.
+- Proposals or reports make claims that are larger than the evidence.
+- Social posts sound like slogan fragments or chatbot politeness.
+- You want Korean output to match a provided writing sample instead of generic polished Korean.
+
 ## 5 editing groups, 20 observation patterns
 
 Humanizer KR does not treat the 20 patterns as a flat banned-word list. The skill rewrites through five editing groups, then uses the 20 patterns as Korean-specific observation signals inside those groups.
@@ -37,22 +65,6 @@ The 20 documented patterns are:
 ## What it is not
 
 Humanizer KR is not an AI detector. The audit script flags patterns that deserve review; it does not prove that a text was written by AI. Do not use this skill to hide plagiarism, impersonate another real person's authorship, or bypass academic, hiring, or compliance integrity checks.
-
-## Repository layout
-
-```text
-.codex-plugin/plugin.json          Codex plugin manifest
-.claude-plugin/plugin.json         Claude Code plugin manifest
-.claude-plugin/marketplace.json    Claude Code marketplace metadata
-.agents/plugins/marketplace.json Codex repo marketplace metadata
-plugins/humanizer-kr/              Codex marketplace-installable plugin package
-skills/humanizer-kr/SKILL.md       Shared skill instructions
-skills/humanizer-kr/references/    Korean source-grounding notes
-skills/humanizer-kr/scripts/       Local audit helper
-examples/                          Before/after Korean examples
-scripts/sync_plugin_package.py    Sync marketplace plugin package copy
-scripts/validate_package.py        Release smoke validator
-```
 
 ## Install in Codex
 
@@ -100,10 +112,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.7` and add the local path:
+For an immutable install, clone this repository at `v0.1.8` and add the local path:
 
 ```bash
-git clone --branch v0.1.7 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.1.8 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -129,6 +141,13 @@ Use $humanizer-kr to make this Korean draft sound natural:
 [paste text]
 ```
 
+### Rewrite with one quality loop
+
+```text
+Use $humanizer-kr. Rewrite this, then review the result once and improve it again:
+[paste text]
+```
+
 ### Review
 
 ```text
@@ -146,48 +165,6 @@ Rewrite this:
 [draft]
 ```
 
-## Optional local audit
-
-The bundled audit script flags Korean AI-writing tells without rewriting the text:
-
-```bash
-python3 skills/humanizer-kr/scripts/audit_korean_text.py path/to/draft.md
-```
-
-or:
-
-```bash
-printf '또한 본 솔루션은 혁신적인 경험을 제공합니다.' | python3 skills/humanizer-kr/scripts/audit_korean_text.py
-```
-
-Machine-readable output is available with:
-
-```bash
-python3 skills/humanizer-kr/scripts/audit_korean_text.py --json path/to/draft.md
-```
-
-## Validate before release
-
-After editing the root skill or manifests, sync the marketplace package copy:
-
-```bash
-python3 scripts/sync_plugin_package.py
-```
-
-Then run the package validator from the repository root. It checks both the root authoring copy and the marketplace package copy:
-
-```bash
-python3 scripts/validate_package.py --release
-```
-
-Then run a content smoke test:
-
-```bash
-python3 skills/humanizer-kr/scripts/audit_korean_text.py examples/product-copy.before.ko.md
-```
-
-See `RELEASE_CHECKLIST.md` for the full publishing checklist.
-
 ## Examples
 
 - `examples/product-copy.before.ko.md` -> `examples/product-copy.after.ko.md`
@@ -197,7 +174,7 @@ See `RELEASE_CHECKLIST.md` for the full publishing checklist.
 - `examples/docs.before.ko.md` -> `examples/docs.after.ko.md`
 - `examples/social-post.before.ko.md` -> `examples/social-post.after.ko.md`
 
-The example outputs are reference rewrites, not the only acceptable answers.
+The after examples include multiple rewrite candidates such as a safe version, a warmer version, and a shorter version. They are reference rewrites, not the only acceptable answers.
 
 ## Source basis
 

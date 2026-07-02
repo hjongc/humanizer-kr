@@ -23,6 +23,10 @@ def codes(text: str) -> set[str]:
     return {item["code"] for item in module.audit(text)}
 
 
+def quality_codes(text: str, genre: str = "general") -> set[str]:
+    return {item["code"] for item in module.quality_review(text, genre)}
+
+
 class AuditKoreanTextTests(unittest.TestCase):
     def test_flags_translationese_and_inflated_praise(self) -> None:
         found = codes("또한 본 솔루션은 혁신적인 경험을 제공합니다. 이를 통해 생산성이 향상됩니다.")
@@ -68,6 +72,23 @@ class AuditKoreanTextTests(unittest.TestCase):
         found = codes(text)
         self.assertIn("punctuation-clutter", found)
         self.assertIn("slogan-rhythm", found)
+
+    def test_quality_review_flags_clean_but_flat_product_copy(self) -> None:
+        text = "이 도구는 어색한 표현을 더 자연스러운 한국어로 바꿉니다. 문장의 톤을 맞출 수 있습니다."
+        found = quality_codes(text, "product-copy")
+        self.assertIn("generic-subject", found)
+        self.assertIn("safe-but-flat", found)
+
+    def test_quality_review_flags_weak_notice_action(self) -> None:
+        text = "서비스 이용 중 문제가 발생할 수 있습니다. 아래 내용을 확인한 뒤 필요한 조치를 진행해 주세요."
+        found = quality_codes(text, "public-notice")
+        self.assertIn("weak-reader-action", found)
+        self.assertIn("ceremonial-notice", found)
+
+    def test_quality_review_accepts_specific_support_reply(self) -> None:
+        text = "알림은 설정 메뉴에서 끌 수 있습니다. 같은 문제가 계속되면 오류 화면을 보내 주세요."
+        findings = module.quality_review(text, "support-email")
+        self.assertEqual(findings, [])
 
 
 if __name__ == "__main__":

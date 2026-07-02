@@ -19,8 +19,32 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
    - concise internal note: plain declarative Korean with minimal honorific padding
 4. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
 5. Run the Korean audit pass before returning the final answer.
+6. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
+
+## Naturalness Rubric
+
+Use this after removing obvious AI-writing tells. A rewrite can be clean and still feel unnatural.
+
+- Genre fit: product copy should be sharper than documentation; support email should tell the reader what to do next; public notices should separate issue, affected reader, action, and timing when those facts exist.
+- Reader action: if the reader needs to do something, name the action. Avoid vague endings such as `필요한 조치를 진행해 주세요` unless the source genuinely withholds the action.
+- Concrete subject: prefer the actual actor or object over generic `이 도구`, `이 서비스`, `본 기능` when the source gives enough context.
+- Rhythm: vary sentence length. Do not make every sentence land with the same `합니다` rhythm unless the genre requires formal uniformity.
+- Warmth: remove ceremonial padding, but do not make support or public-facing text cold. Keep enough respect for the reader relationship.
+- Claim control: do not add benefits, examples, numbers, deadlines, app names, institutions, or causal claims that the source did not provide.
+- Voice match: if a sample is provided, the sample wins over generic polished Korean.
+
+When the first rewrite is safe but bland, improve once more. Prefer a smaller, more specific sentence over a broader sentence with polished wording.
+
+## Failure and Uncertainty Policy
+
+Fail visible when the source is too thin to rewrite safely.
+
+- If an action, timeline, affected audience, or cause is missing from a notice or support reply, do not invent it. Keep the final text modest and add a short note asking for the missing detail.
+- If a claim needs evidence, do not dress it up. Lower the claim or ask for the source.
+- If the requested voice conflicts with facts, legal wording, quoted text, or safety constraints, preserve the constraint and explain the tradeoff briefly.
+- If the user asks for an integrity-bypassing rewrite, refuse that use and offer a clarity/readability edit that does not misrepresent authorship.
 
 ## Voice Calibration
 
@@ -120,9 +144,23 @@ python3 skills/humanizer-kr/scripts/audit_korean_text.py <file>
 
 Use the script as a smoke test, not as the final judge. It flags patterns that deserve attention; it does not prove a text is AI-generated.
 
+For a second quality pass, run:
+
+```bash
+python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre product-copy <file>
+```
+
+Use `--quality` to look for bland-but-clean output, weak reader actions, leftover availability phrasing, and genre mismatch.
+
 ## Output
 
-If the user asks to rewrite, return the final rewritten text first. Add a short note only when tradeoffs matter, such as a changed register, removed unsupported claims, or preserved technical terms.
+If the user asks to rewrite, return the final rewritten text first. Add a short note only when tradeoffs matter, such as a changed register, removed unsupported claims, missing source details, or preserved technical terms.
+
+If the user asks for a stronger result or an improvement loop, return:
+
+1. final rewrite
+2. what changed from the first safe rewrite
+3. any missing detail that would make the result more specific
 
 If the user asks to review, return:
 

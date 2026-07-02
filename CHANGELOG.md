@@ -2,6 +2,15 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.1.8 - 2026-07-02
+
+- Added a README overview image and a stronger before/after opening.
+- Simplified the public README by removing maintainer-only audit, repository layout, and release validation sections.
+- Expanded Korean after examples into multiple rewrite candidates.
+- Added a sample output-improvement loop fixture.
+- Added a naturalness rubric and failure policy to the skill instructions.
+- Added `--quality` review mode to the Korean audit helper.
+
 ## 0.1.7 - 2026-07-01
 
 - Reorganized the Korean README pattern section into 5 core groups with grouped before/after pattern tables.
