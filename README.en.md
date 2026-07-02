@@ -10,24 +10,25 @@ It is designed for product copy, public notices, emails, documentation, proposal
 
 ## See the difference first
 
-Humanizer KR does not make Korean copy louder. It removes the padding, inflated claims, and translated-outline rhythm so the reader can understand the point faster.
+Humanizer KR does not make Korean copy louder. It removes the padding, inflated claims, and translated-outline rhythm so the reader can understand the point faster. In business contexts, it keeps useful business language instead of flattening everything into plain everyday Korean.
 
 **Before**
 
-> 또한 본 솔루션은 혁신적인 AI 기술을 기반으로 사용자에게 최적화된 경험을 제공합니다. 이를 통해 업무 효율성 향상과 새로운 가능성 창출이 가능합니다.
+> 충분한 물을 마시는 것은 건강한 생활 습관 형성에 도움을 줄 수 있습니다. 또한 이를 통해 몸의 수분 균형을 유지하고 일상생활에서 더 나은 컨디션을 기대할 수 있습니다.
 
 **After**
 
-> 이 도구는 반복해서 쓰는 문장을 점검하고, 어색한 표현을 더 자연스러운 한국어로 바꿉니다. 공개 전에 문장의 톤을 한 번 더 맞출 수 있습니다.
+> 물을 충분히 마시면 몸의 수분 균형을 유지하는 데 도움이 됩니다. 일상에서 컨디션을 관리하기에도 좋습니다.
 
 **After one more quality pass**
 
-> 반복되는 표현을 찾아 어색한 문장을 줄입니다. 공개하기 전에 초안의 말투와 흐름을 한 번 더 맞출 수 있습니다.
+> 물을 충분히 마시면 몸의 수분 균형을 유지하는 데 도움이 됩니다. 컨디션 관리에도 좋습니다.
 
 The first rewrite should be safe. The final rewrite should also fit the genre, reader, rhythm, and action. See `examples/evals/output-sample-loop.ko.md` for a sample output-improvement loop.
 
 ## When to use it
 
+- Everyday writing or explanatory text feels stiff because of translationese or abstract wording.
 - Product copy feels flat, overexplained, or too promotional.
 - Notices, emails, and docs are weighed down by ceremonial honorifics.
 - Proposals or reports make claims that are larger than the evidence.
