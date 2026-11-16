@@ -1,6 +1,6 @@
 ---
 name: humanizer-kr
-description: Rewrite, edit, or review Korean text so it sounds natural, human, and source-grounded rather than AI-generated or translation-like. Use for Korean product copy, posts, emails, public notices, documentation, essays, proposals, scripts, and other drafts that need Korean-specific register control, plain-language discipline, removal of AI-writing tells, or voice matching from a user-provided Korean writing sample.
+description: Rewrite, edit, or review Korean text so it sounds natural, human, and source-grounded rather than AI-generated or translation-like. Use for Korean product copy, posts, emails, public notices, documentation, essays, proposals, scripts, and other drafts that need Korean-specific register control, plain-language discipline, removal of AI-writing tells, or voice matching from a user sample or saved voice profile.
 ---
 
 # Humanizer KR
@@ -13,13 +13,14 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
 
 1. Identify the genre and reader: product copy, public notice, email, essay, documentation, proposal, social post, or spoken script.
 2. Preserve facts, intent, paragraph coverage, and constraints. Rewrite the language, not the underlying claims.
-3. Choose one register and keep it stable:
+3. Look for `voice.md` in `./.humanizer-kr/` first, then `~/.humanizer-kr/`; load only that profile during a rewrite.
+4. Choose one register and keep it stable:
    - formal public/professional: `합니다`, `하십시오`
    - polite product/support: `해요`, `해주세요`
    - concise internal note: plain declarative Korean with minimal honorific padding
-4. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
-5. Run the Korean audit pass before returning the final answer.
-6. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre.
+5. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
+6. Run the Korean audit pass before returning the final answer.
+7. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
 
@@ -33,7 +34,7 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
 - Rhythm: vary sentence length. Do not make every sentence land with the same `합니다` rhythm unless the genre requires formal uniformity.
 - Warmth: remove ceremonial padding, but do not make support or public-facing text cold. Keep enough respect for the reader relationship.
 - Claim control: do not add benefits, examples, numbers, deadlines, app names, institutions, or causal claims that the source did not provide.
-- Voice match: if a sample is provided, the sample wins over generic polished Korean.
+- Voice match: use a sample or saved profile over generic polished Korean.
 
 When the first rewrite is safe but bland, improve once more. Prefer a smaller, more specific sentence over a broader sentence with polished wording.
 
@@ -57,6 +58,20 @@ If the user provides a Korean writing sample, read it before editing and match:
 - level of emotional color, humor, or bluntness
 
 Do not "upgrade" the user's voice into generic polished Korean. If the sample is plain, stay plain. If the sample is slightly rough but intentional, keep that pulse.
+
+### Saved voice profile
+
+Before rewriting, look for `voice.md` in `./.humanizer-kr/` (project), then `~/.humanizer-kr/` (personal). Use the first one found. If neither exists, proceed as today; when the user supplies a sample, mention profile setup in at most one line and never ask them to create one unprompted. Each voice directory holds the derived `voice.md` and a `samples/` directory with one raw sample per `NN-<genre>.md` file (for example, `01-work-email.md`). Never store samples inside the installed skill directory, which plugin updates replace.
+
+Precedence: explicit instructions in the current request > a sample pasted in the current request > saved profile > this skill's generic defaults. Facts, quoted text, legal wording, and a required public register (such as a public notice) still take priority over the profile. Keep the constraint and say so briefly when they conflict.
+
+The profile changes voice only. It never licenses adding facts, anecdotes, or personal experience, and it does not disable the audit pass. If the profile explicitly allows an expression flagged by the tells list (for example, the user really writes `솔직히`), follow the profile for that expression.
+
+When the user asks to save or learn their style (for example, `내 문체 저장해줘` or "set up my voice"), one sample is enough to start; more samples and genres improve the profile. Save each pasted sample verbatim as its own file under `samples/` in `~/.humanizer-kr/` by default. Use `./.humanizer-kr/` only if the user asks for project storage. Then read the saved files, extract a profile using `references/voice-profile-template.md`, write it to that directory's `voice.md`, and show the resulting profile. Saving on this request needs no second confirmation. When adding samples later, save the new files and re-extract the profile from all files in `samples/`. Extract register and endings; sentence construction (length, openings, clause chaining, subject omission, typical endings); paragraph construction (length, whether conclusion or context comes first, connections, and closings); connectors; vocabulary and tolerance for English terms; punctuation and emoji; and emotional color. Describe only what the samples show; mark any field `not enough evidence` instead of guessing. Since samples are stored as pasted, tell the user in one line where they were saved. For project storage, suggest adding `.humanizer-kr/` to `.gitignore`. Keep names, contacts, and other personal data out of `voice.md`. Read `samples/` only to build or rebuild the profile, or when the user asks to check a rewrite against the originals; normal rewrites load only `voice.md`.
+
+When a correction reveals a lasting preference (for example, `나는 이런 말 안 써`), offer to add one line to the profile's do/avoid lists. Never edit the profile silently.
+
+A profile describes the user's own voice. Do not build one to imitate another real person's authorship, consistent with the refusal policy above.
 
 ## Korean AI-Writing Tells
 

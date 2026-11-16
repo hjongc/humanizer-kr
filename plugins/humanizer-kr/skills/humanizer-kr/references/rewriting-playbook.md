@@ -110,6 +110,8 @@ Edit: use the provided sample as the stronger constraint. Preserve sentence
 length, ending style, and tolerance for roughness unless it hides meaning or
 breaks a required public register.
 
+When no sample is pasted, a saved voice profile counts as the sample.
+
 ### Over-Editing
 
 Problem: the rewrite adds a benefit, metaphor, example, emotional color, or

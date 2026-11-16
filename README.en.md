@@ -172,6 +172,12 @@ Rewrite this:
 [draft]
 ```
 
+Pasted samples are saved as individual files under `samples/`, and `voice.md` is extracted from those files. Personal storage uses `~/.humanizer-kr/` by default; use `./.humanizer-kr/` for a project only when requested. The project directory takes precedence. Later rewrites load only `voice.md`, keeping raw samples out of normal rewrite context. To add samples later, save the new files and rebuild the profile from all files in `samples/`. If you use project storage, consider adding `.humanizer-kr/` to `.gitignore`. You can edit the profile by hand.
+
+```text
+Use $humanizer-kr. 내 문체를 저장해줘: [내가 쓴 글]
+```
+
 ## Examples
 
 - `examples/product-copy.before.ko.md` -> `examples/product-copy.after.ko.md`

@@ -76,6 +76,7 @@ def validate_references() -> None:
     required_refs = [
         "korean-source-rules.md",
         "rewriting-playbook.md",
+        "voice-profile-template.md",
     ]
     for name in required_refs:
         refs = ROOT / "skills" / "humanizer-kr" / "references" / name
