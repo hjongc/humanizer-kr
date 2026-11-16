@@ -1,24 +1,25 @@
-# Output-Feedback Improvement Loop
+# Output-Feedback Evaluation Loop
 
-Maintainer-only. Not synced into `plugins/humanizer-kr` (see `scripts/sync_plugin_package.py`).
-
-The release gate (`--after-examples`) only proves that hand-written examples pass
-hand-written regexes. This loop measures what the skill actually produces and
-feeds failures back into `SKILL.md`, the playbook, and the audit rules.
+Maintainer-only. Not synced into `plugins/humanizer-kr` (see
+`scripts/sync_plugin_package.py`). The evaluation goal is human-likeness: remove
+AI-writing tells and translationese while preserving the source's meaning. This
+is not a general writing-quality score. A plain, slightly rough human sentence
+can be a better result than a polished rewrite that adds structure or claims.
 
 ## Layout
 
 ```
 evals/
-  inputs/<id>.ko.md        AI-flavored drafts to rewrite (frontmatter below)
-  human/<id>.ko.md         human-written Korean; audit false-positive set
-  loop.py                  run | judge | pick | report
-  rounds/<n>/              one directory per round (committed)
-    meta.json              skill git SHA and content digest, dirty flag, models, date
+  inputs/<id>.ko.md        Korean drafts to rewrite
+  human/<id>.ko.md         legacy audit false-positive set
+  loop.py                  run | judge | pair | stats | pick | report
+  rounds/<n>/              one directory per round
     outputs/<engine>/<condition>/<id>.md
-    judge.jsonl            one LLM verdict per output
-    picks.jsonl            human blind picks
-    report.md              round summary and diff vs previous round
+    judge.jsonl            one factual and human-likeness verdict per output
+    pair.jsonl             pairwise model judgments
+    stats.json             aggregate objective statistics only
+    picks.jsonl             optional blind human choices
+    report.md               round summary
 ```
 
 Input frontmatter:
@@ -27,74 +28,97 @@ Input frontmatter:
 ---
 genre: product-copy | public-notice | support-email | proposal | docs | social-post
 source: generated | real
-must_keep: ["3월 15일", "설정 > 알림", "환불은 7일 이내"]   # facts that must survive
+must_keep: ["3월 15일", "설정 > 알림"]
 ---
 ```
 
-Set size: 6 genres x 7 = 42 generated inputs, plus the human set.
+## Commands
 
-## Round
+Run the same inputs with the skill or a plain rewrite prompt:
 
-1. `run`: rewrite every input with each engine (`codex exec`, `claude -p`) under
-   two conditions:
-   - `skill`: SKILL.md and both references are put in the prompt, so every engine
-     gets the same instructions.
-   - `plain`: "Rewrite this Korean text so it reads naturally" with no skill. This
-     is the baseline, generated in round 1 and reused afterwards. Pass
-     `run --round N --with-plain` to generate a fresh plain baseline in a later round.
-   Each `meta.json` keeps the current `skill_sha` and also records `skill_digest`,
-   the SHA-256 of `SKILL.md` followed by sorted `references/*.md` contents, and
-   `skill_dirty`, whether `git status --porcelain -- skills` was non-empty.
-2. `judge`: a fixed judge model scores each output and sees neither the engine
-   nor the condition. It returns JSON:
-    `{invented: [..], dropped_facts: [..], register_ok, reader_action_ok, genre_fit 1-5, naturalness 1-5, residual_tells: [..], note, rule_violations: [{rule: "S7 or N8", quote: "exact output text", introduced: true|false}]}`. The judge uses both sourced rule sets (S and N) at their genre-specific strength.
-   `dropped_facts` covers verifiable content only; removed praise, filler, greetings, closing courtesies, and vague expectations do not count. `invented` includes claims strengthened beyond the source, such as an estimate turned into a promise, and changes of modality or tense. Each sourced `rule_violations` entry includes `introduced`: true when the output created the problem or could fix it using only the source; false when the problem was inherited and fixing it would require facts the source does not provide. Missing `introduced` fields in older verdicts default to true.
-   Deterministic checks run alongside it:
-   - each `must_keep` string and each number in the source must appear in the
-     output, ignoring thousands separators;
-   - the audit finding count before and after the rewrite.
-3. `pick` (optional): the maintainer is shown 8-10 sampled pairs in random A/B order and
-   answers "A, B, or tie". Round 1 pairs `skill` against `plain`; later rounds
-   pair the current round against the previous one. When a pick disagrees with
-   the judge, the pick wins and the case is logged as a judge miss.
-4. `report`: writes `report.md` with these numbers:
-   - sourced-rule violation rate and hard-fail rate (any invented content or dropped fact);
-   - mean naturalness and genre fit per engine and genre;
-   - human win rate;
-   - audit false-positive rate on `human/`;
-   - the delta against the previous round, calculated only over inputs present in
-     both rounds' skill outputs for that engine (with the common-input count shown).
-     If the current round has its own `plain` outputs, `report` and `pick` use
-     those as the baseline; otherwise they use round 1's plain or the previous
-     round's skill output as appropriate.
+```bash
+python3 evals/loop.py run --round 4 --engines codex,claude
+python3 evals/loop.py judge --round 4 --judge-engine claude
+python3 evals/loop.py pair --round 4 --judge-engine claude
+python3 evals/loop.py stats --round 4 --human ~/.humanizer-kr/samples
+python3 evals/loop.py report --round 4 --human ~/.humanizer-kr/samples
+```
 
-The sourced-rule section reports outputs with introduced violations and
-introduced per-rule counts as its primary measure. A secondary line includes
-inherited violations in the totals.
+`run` generates both `skill` and `plain` conditions by default. The plain
+baseline is normally created in round 1 and reused in later rounds; pass
+`run --round N --with-plain` to generate a fresh one. Each round's `meta.json`
+records the skill revision, content digest, dirty flag, models, and date.
+Generator calls run in isolated temporary working directories.
 
-## Triage -> change -> re-run
+`pick` is an optional blind human comparison. In round 1 it samples skill vs
+plain; in later rounds it uses same-round plain when available, otherwise the
+previous round's skill output. The judge and pair commands provide separate
+model-based measurements.
 
-Classify each failure into one bucket:
+`pair` compares each skill output with the same-round plain output when one
+exists, and with SOURCE. It asks the same judge engine/model twice with A/B
+swapped. A win or loss requires agreement across both orders; disagreement is
+a tie. Outputs that fail the round's factual hard-fail checks forfeit without a
+model call. `--judge-engine fake` produces deterministic ties for offline tests.
+Pair records are resumable by input, engine, and comparison.
 
-- missing rule
-- over-editing (content was invented)
-- audit false positive
-- audit miss
-- register or genre mismatch
-- judge miss
+The judge returns these required fields:
 
-Fix the smallest owning file: `SKILL.md`, `references/rewriting-playbook.md`, or
-the audit rules. Every fix adds a regression case to
-`tests/test_audit_korean_text.py` or to `inputs/`.
+```json
+{
+  "invented": [],
+  "dropped_facts": [],
+  "register_ok": true,
+  "ai_tells": [{"tell": "short label", "quote": "exact text from OUTPUT"}],
+  "human_likeness": 1,
+  "note": "",
+  "rule_violations": [{"rule": "S7 or N8", "quote": "exact text", "introduced": true}]
+}
+```
 
-Re-run on the same set. The sourced-rule violation rate is the primary quality
-number alongside the hard-fail rate. Keep a change when the hard-fail rate does
-not rise and the sourced-rule violation rate falls; naturalness is secondary.
-Otherwise revert it.
+`human_likeness` measures whether a Korean reader would believe a person wrote
+the output, based on the absence of AI-writing tells and translationese. It
+does not reward extra structure, completeness, persuasion, or usefulness.
+`ai_tells` records each remaining tell with an exact output quote. `invented`
+includes asserted additions and modality or tense drift. New reader actions,
+headings, lists, examples, and emphasis that assert no new content are noted,
+not counted as invented. `dropped_facts` covers lost verifiable information.
+Sourced `rule_violations` remain secondary and each entry records whether the
+output introduced the issue. Rounds 1–3 used the old schema
+(`reader_action_ok`, `genre_fit`, `naturalness`, `residual_tells`); `report`
+continues to read those rounds and only calculates metrics present in a row.
+
+`stats` calculates sentence-length mean and coefficient of variation, ending
+diversity, connector rate, and a regex-based nominalization proxy for sources,
+outputs, and human references. The human directory defaults to
+`~/.humanizer-kr/samples` when present. Use `--human DIR` to select another
+directory. Human files stay outside the repository: the loop reads `*.md`
+files and writes only their count and aggregate metric means to `stats.json` and
+the report. It never copies sample text into round artifacts.
+
+## Report order
+
+Reports show factual hard-fail rate first, then human-likeness and AI-tell
+summaries, pairwise outcomes, objective-stat distances from the human mean,
+and secondary sourced-rule, audit, and optional human-pick results. If no human
+reference directory exists, the report says `human reference: none` and prints
+no human-distance values. Objective stats can be read from `stats.json` or
+computed when reporting. Round deltas compare common skill inputs against the
+previous round and include factual hard-fail rate and human-likeness. A
+naturalness delta is included only when both rounds contain that legacy metric.
+The report also includes the legacy audit false-positive rate over `evals/human/`.
+
+## Triage
+
+Use factual hard failures, AI-tell labels, pairwise results, and the secondary
+sourced-rule section to find over-editing, remaining AI tells, audit misses, or
+judge disagreements. Change the smallest owning skill, reference, or audit
+rule, add a regression case, and rerun the same evaluation set.
 
 ## Guardrails
 
-- Never put real personal data into `inputs/` or `human/`. Use only text the
-  maintainer owns or may reuse.
-- The judge and the pick measure readability. Neither one claims to measure
-  "AI detection".
+- Never put real personal data into committed `inputs/` or the legacy `human/`
+  set. Human reference samples should remain outside the repository.
+- The judge and pairwise comparison measure human-likeness, not authorship or
+  AI detection.
+- Deterministic fact checks verify `must_keep` strings and source numbers.

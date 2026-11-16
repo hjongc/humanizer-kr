@@ -12,6 +12,7 @@ import json
 import os
 import random
 import re
+import statistics
 import shutil
 import subprocess
 import sys
@@ -200,12 +201,15 @@ def parse_verdict(raw: str, output: str | None = None) -> dict[str, Any]:
         if start < 0 or end < start:
             raise ValueError("judge response contains no JSON object") from None
         verdict = json.loads(candidate[start:end + 1])
-    required = {"invented": list, "dropped_facts": list, "register_ok": bool, "reader_action_ok": bool,
-                "genre_fit": int, "naturalness": int, "residual_tells": list, "note": str}
+    required = {"invented": list, "dropped_facts": list, "register_ok": bool,
+                "ai_tells": list, "human_likeness": int, "note": str, "rule_violations": list}
     if not isinstance(verdict, dict) or any(not isinstance(verdict.get(key), kind) for key, kind in required.items()):
         raise ValueError("judge JSON has missing fields or invalid field types")
-    if any(not 1 <= verdict[key] <= 5 for key in ("genre_fit", "naturalness")):
-        raise ValueError("judge scores must be integers from 1 to 5")
+    if not 1 <= verdict["human_likeness"] <= 5:
+        raise ValueError("human_likeness must be an integer from 1 to 5")
+    if any(not isinstance(item, dict) or not isinstance(item.get("tell"), str)
+           or not isinstance(item.get("quote"), str) for item in verdict["ai_tells"]):
+        raise ValueError("judge ai_tells must be a list of tell/quote objects")
     violations = verdict.get("rule_violations", [])
     if not isinstance(violations, list) or any(
         not isinstance(item, dict) or not isinstance(item.get("rule"), str)
@@ -217,6 +221,7 @@ def parse_verdict(raw: str, output: str | None = None) -> dict[str, Any]:
         violation.setdefault("introduced", True)
     if output is not None:
         violations = [item for item in violations if item["quote"] in output]
+        verdict["ai_tells"] = [item for item in verdict["ai_tells"] if item["quote"] in output]
     verdict["rule_violations"] = violations
     return verdict
 
@@ -224,29 +229,40 @@ def parse_verdict(raw: str, output: str | None = None) -> dict[str, Any]:
 def judge_prompt(genre: str, must_keep: list[str], source: str, output: str) -> str:
     """Build an anonymized judge prompt with the skill's evaluation policy."""
     skill = SKILL_PATH.read_text(encoding="utf-8")
-    rubric = skill[skill.index("## Naturalness Rubric"):skill.index("## Voice Calibration")]
+    heading = "## Korean AI-Writing Tells"
+    start = skill.find(heading)
+    if start < 0:
+        raise ValueError(f"{SKILL_PATH}: missing {heading} heading")
+    next_heading = re.search(r"^## .+", skill[start + len(heading):], re.M)
+    end = start + len(heading) + next_heading.start() if next_heading else len(skill)
+    tells = skill[start:end].rstrip()
     source_rules = SOURCE_RULES_PATH.read_text(encoding="utf-8")
     sourced_rules = source_rules[source_rules.index("## Sourced Sentence Rules"):source_rules.index("## Genre Strength Matrix")]
     genre_matrix = source_rules[source_rules.index("## Genre Strength Matrix"):]
     return (f"Evaluate this Korean rewrite. Genre: {genre}. must_keep: {json.dumps(must_keep, ensure_ascii=False)}\n\n"
-            f"{rubric}\n{sourced_rules}\n{genre_matrix}\n"
-            "For this genre, list each violation of a required or recommended sourced rule (S or N) in rule_violations "
+            f"{tells}\n{sourced_rules}\n{genre_matrix}\n"
+            "Sourced rule violations are secondary to human-likeness and factual preservation. For this genre, list each violation of a required or recommended sourced rule (S or N) in rule_violations "
             "as {\"rule\": \"S7 or N8\", \"quote\": \"<exact text from OUTPUT>\", \"introduced\": true|false}. "
             "Set introduced=true when OUTPUT created the problem or could have fixed it using only content in SOURCE; "
             "set false when it inherited a problem from SOURCE and fixing it would require facts SOURCE does not give. "
             "Use an empty list when there are none.\n"
-            "Field definitions: genre_fit and naturalness are integers 1-5; "
-            "1 = clearly machine-like or wrong genre, 3 = acceptable but bland, "
-            "5 = reads like a skilled native writer for this genre. dropped_facts means verifiable content only: "
+            "Field definitions: human_likeness is how likely a Korean reader would believe a person wrote OUTPUT, "
+            "judged by the absence of AI-writing tells and translationese. 1 = obviously machine-written, "
+            "3 = some tells remain, 5 = no tells; reads as an ordinary person's writing. It is NOT a quality score: "
+            "do not reward OUTPUT for being more structured, complete, persuasive, or useful than SOURCE; "
+            "a plain, slightly rough human sentence beats a polished, generic one. ai_tells lists every remaining "
+            "tell in OUTPUT with its exact quote. dropped_facts means verifiable content only: "
             "names, numbers, dates, times, paths, conditions, required actions, and distinct events. "
             "Removed praise, filler, greetings, closing courtesies, and vague expectations are NOT dropped facts. "
             "List invented content (facts/benefits/numbers not in source, including a claim made stronger "
             "than the source such as an estimate turned into a promise) in invented. Invented also includes changes "
             "of modality or tense: requirement -> permission (\"입력하고\" -> \"입력할 수 있고\"), possibility -> "
             "assertion (\"제공이 가능합니다\" -> \"제공합니다\"), estimate -> confirmed fact, restriction -> "
-            "full block, and completed -> upcoming. Return strict JSON with fields "
-            "invented, dropped_facts, register_ok, reader_action_ok, genre_fit, naturalness, "
-            "residual_tells, note, rule_violations. Do not identify the generator or condition.\nSOURCE:\n"
+            "full block, and completed -> upcoming. Content OUTPUT adds that SOURCE lacks (new reader actions, "
+            "headings, lists, examples, emphasis) counts as invented only when it asserts something; otherwise "
+            "mention it in note. Return strict JSON with fields invented, dropped_facts, register_ok, ai_tells "
+            "([{\"tell\": \"short label\", \"quote\": \"exact text from OUTPUT\"}]), "
+            "human_likeness (integer 1-5), note, rule_violations. Do not identify the generator or condition.\nSOURCE:\n"
             f"{source}\nOUTPUT:\n{output}")
 
 
@@ -277,8 +293,8 @@ def judge(args: argparse.Namespace) -> int:
         output_path, key, metadata, source = task
         output = output_path.read_text(encoding="utf-8")
         if args.judge_engine == "fake":
-            verdict = {"invented": [], "dropped_facts": [], "register_ok": True, "reader_action_ok": True,
-                       "genre_fit": 3, "naturalness": 3, "residual_tells": [], "note": "fake deterministic verdict",
+            verdict = {"invented": [], "dropped_facts": [], "register_ok": True,
+                       "ai_tells": [], "human_likeness": 3, "note": "fake deterministic verdict",
                        "rule_violations": []}
         else:
             with tempfile.TemporaryDirectory(prefix="humanizer-judge-") as cwd:
@@ -315,6 +331,156 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _hard_fail(row: dict[str, Any] | None) -> bool:
+    if not row:
+        return False
+    verdict, checks = row.get("verdict", {}), row.get("checks", {})
+    return bool(verdict.get("invented") or verdict.get("dropped_facts") or
+                checks.get("missing_must_keep") or checks.get("missing_numbers"))
+
+
+def _pair_winner(raw: str) -> str:
+    candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.I)
+    try:
+        result = json.loads(candidate)
+    except json.JSONDecodeError:
+        start, end = candidate.find("{"), candidate.rfind("}")
+        if start < 0 or end < start:
+            raise ValueError("pair judge response contains no JSON object") from None
+        result = json.loads(candidate[start:end + 1])
+    if not isinstance(result, dict) or result.get("winner") not in ("A", "B", "tie") or not isinstance(result.get("reason"), str):
+        raise ValueError("pair judge JSON must contain winner A/B/tie and reason")
+    return result["winner"]
+
+
+def pair(args: argparse.Namespace) -> int:
+    """Compare skill outputs with plain outputs and source, resuming pair records."""
+    evals_dir = Path(args.evals_dir)
+    round_dir = evals_dir / "rounds" / str(args.round)
+    pair_file = round_dir / "pair.jsonl"
+    existing = {(row.get("input"), row.get("engine"), row.get("comparison"))
+                for row in load_jsonl(pair_file)}
+    judged = {row.get("output"): row for row in load_jsonl(round_dir / "judge.jsonl")}
+    pending = []
+    for input_path in input_files(evals_dir):
+        metadata, source = parse_input(input_path)
+        filename = f"{input_path.stem}.md"
+        for skill_path in sorted((round_dir / "outputs").glob(f"*/skill/{filename}")):
+            engine = skill_path.parts[-3]
+            plain_path = round_dir / "outputs" / engine / "plain" / filename
+            comparisons = [("skill_vs_plain", plain_path, plain_path.read_text(encoding="utf-8") if plain_path.exists() else None),
+                           ("skill_vs_source", None, source)]
+            for comparison, other_path, other_text in comparisons:
+                key = (input_path.name, engine, comparison)
+                if key in existing or other_text is None:
+                    continue
+                skill_key = str(skill_path.relative_to(round_dir))
+                other_key = str(other_path.relative_to(round_dir)) if other_path else None
+                pending.append((input_path.name, engine, comparison, skill_path.read_text(encoding="utf-8"),
+                                other_text, judged.get(skill_key), judged.get(other_key)))
+    round_dir.mkdir(parents=True, exist_ok=True)
+    homes = make_codex_home() if args.judge_engine == "codex" else None
+    try:
+        with pair_file.open("a", encoding="utf-8") as stream:
+            for input_name, engine, comparison, skill_text, other_text, skill_judge, other_judge in pending:
+                forfeit = _hard_fail(skill_judge) or _hard_fail(other_judge)
+                if forfeit:
+                    result, orders = ("loss" if _hard_fail(skill_judge) else "win"), []
+                elif args.judge_engine == "fake":
+                    result, orders = "tie", ["tie", "tie"]
+                else:
+                    winners = []
+                    for a_text, b_text in ((skill_text, other_text), (other_text, skill_text)):
+                        prompt = ("Which text reads more like a person wrote it? Ignore which is more polished, "
+                                  "complete, or useful. Return strict JSON {\"winner\": \"A\"|\"B\"|\"tie\", "
+                                  "\"reason\": \"...\"}.\nA:\n" + a_text + "\nB:\n" + b_text)
+                        with tempfile.TemporaryDirectory(prefix="humanizer-pair-") as cwd:
+                            raw = invoke(args.judge_engine, args.judge_model, prompt, Path(cwd),
+                                         Path(homes.name) if homes else None, judge=True)
+                        winners.append(_pair_winner(raw))
+                    orders = winners
+                    result = "win" if winners == ["A", "B"] else "loss" if winners == ["B", "A"] else "tie"
+                row = {"input": input_name, "engine": engine, "comparison": comparison,
+                       "result": result, "orders": orders, "forfeit": forfeit}
+                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+    finally:
+        if homes:
+            homes.cleanup()
+    return 0
+
+
+def text_stats(text: str) -> dict[str, float]:
+    """Compute simple sentence rhythm and nominalization proxies."""
+    lines = text.splitlines()
+    filtered = []
+    in_frontmatter = False
+    for line in lines:
+        if line.strip() == "---":
+            in_frontmatter = not in_frontmatter
+            continue
+        if in_frontmatter or re.match(r"^\s*#{1,6}(?:\s|$)", line):
+            continue
+        filtered.append(line)
+    body = "\n".join(filtered)
+    sentences = [part.strip() for part in re.split(r"(?<=[.?!…])(?=\s|$)|[\r\n]+", body) if part.strip()]
+    lengths = [len(re.sub(r"\s", "", sentence)) for sentence in sentences]
+    mean_length = statistics.mean(lengths) if lengths else 0.0
+    cv = statistics.pstdev(lengths) / mean_length if len(lengths) > 1 and mean_length else 0.0
+    endings = set()
+    for sentence in sentences:
+        hangul = re.findall(r"[가-힣]", sentence)
+        if len(hangul) >= 2:
+            endings.add("".join(hangul[-2:]))
+    connectors = ("또한", "이를 통해", "아울러", "더불어", "나아가", "따라서", "특히", "이에", "결론적으로", "무엇보다")
+    connector_count = sum(sentence.startswith(connectors) for sentence in sentences)
+    tokens = body.split()
+    # shortcut: regex proxy for nominalization, replace with a morphological analyzer if the metric drives decisions
+    nominal_pattern = re.compile(r"^(?:[가-힣]{2,}(?:화|성)(?:을|를|이|가|은|는|의|에|과|와|도|으로|로)?[.,]?|[가-힣]+적(?:인|으로)[.,]?)$")
+    nominal_count = sum(bool(nominal_pattern.match(token)) for token in tokens)
+    return {"sent_len_mean": mean_length, "sent_len_cv": cv,
+            "ending_diversity": len(endings) / len(sentences) if sentences else 0.0,
+            "connector_rate": connector_count / len(sentences) if sentences else 0.0,
+            "nominal_rate": nominal_count * 100 / len(tokens) if tokens else 0.0}
+
+
+STAT_METRICS = ("sent_len_mean", "sent_len_cv", "ending_diversity", "connector_rate", "nominal_rate")
+
+
+def compute_stats(evals_dir: Path, round_dir: Path, human_dir: Path | None) -> dict[str, Any]:
+    groups: dict[str, list[dict[str, float]]] = {"source": []}
+    for path in input_files(evals_dir):
+        groups["source"].append(text_stats(parse_input(path)[1]))
+    for output in sorted((round_dir / "outputs").glob("*/*/*.md")):
+        group = f"{output.parts[-3]}/{output.parts[-2]}"
+        groups.setdefault(group, []).append(text_stats(output.read_text(encoding="utf-8")))
+    result = {name: {"count": len(values), "mean": {
+        metric: sum(item[metric] for item in values) / len(values) for metric in STAT_METRICS
+    } if values else {metric: None for metric in STAT_METRICS}} for name, values in groups.items()}
+    if human_dir and human_dir.is_dir():
+        human_values = [text_stats(path.read_text(encoding="utf-8")) for path in sorted(human_dir.glob("*.md"))]
+        result["human"] = {"count": len(human_values), "mean": {
+            metric: sum(item[metric] for item in human_values) / len(human_values) for metric in STAT_METRICS
+        } if human_values else {metric: None for metric in STAT_METRICS}}
+    else:
+        result["human"] = None
+    return result
+
+
+def stats(args: argparse.Namespace) -> int:
+    """Write aggregate objective statistics without retaining human reference text."""
+    evals_dir = Path(args.evals_dir)
+    round_dir = evals_dir / "rounds" / str(args.round)
+    human_arg = getattr(args, "human", None)
+    human_dir = Path(human_arg).expanduser() if human_arg else Path.home() / ".humanizer-kr/samples"
+    values = compute_stats(evals_dir, round_dir, human_dir if human_dir.is_dir() else None)
+    round_dir.mkdir(parents=True, exist_ok=True)
+    path = round_dir / "stats.json"
+    path.write_text(json.dumps(values, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"Objective statistics written: {path}")
+    print(f"human reference: {values['human']['count']} files" if values["human"] else "human reference: none")
+    return 0
 
 
 def pick(args: argparse.Namespace) -> int:
@@ -368,120 +534,119 @@ def pick(args: argparse.Namespace) -> int:
 
 
 def report(args: argparse.Namespace) -> int:
-    """Write aggregate quality, human-choice, and round-delta metrics."""
+    """Write factual, human-likeness, pairwise, objective and secondary metrics."""
     evals_dir = Path(args.evals_dir)
     round_dir = evals_dir / "rounds" / str(args.round)
     round_dir.mkdir(parents=True, exist_ok=True)
     rows = load_jsonl(round_dir / "judge.jsonl")
-    valid_rows = [row for row in rows if "error" not in row["verdict"]]
-    hard_causes = {"invented": 0, "dropped_facts": 0, "missing_must_keep": 0, "missing_numbers": 0}
-    for row in rows:
-        verdict, checks = row["verdict"], row["checks"]
-        row["hard_fail"] = bool(verdict.get("invented") or verdict.get("dropped_facts") or
-                                 checks["missing_must_keep"] or checks["missing_numbers"])
-        for cause, present in (("invented", verdict.get("invented")), ("dropped_facts", verdict.get("dropped_facts")),
-                               ("missing_must_keep", checks["missing_must_keep"]),
-                               ("missing_numbers", checks["missing_numbers"])):
-            hard_causes[cause] += bool(present)
-    lines = [f"# Round {args.round} report", "", f"Outputs judged: {len(rows)}",
-             f"Judge errors: {len(rows) - len(valid_rows)}"]
-    lines.extend(["", f"Hard-fail rate: {sum(row['hard_fail'] for row in rows)}/{len(rows)}" if rows else "Hard-fail rate: n/a"])
-    lines.extend([f"- {cause}: {count}" for cause, count in hard_causes.items()])
+    valid_rows = [row for row in rows if "error" not in row.get("verdict", {})]
     groups = sorted({(row["engine"], row["condition"]) for row in rows})
+    for row in rows:
+        row["hard_fail"] = _hard_fail(row)
+    lines = [f"# Round {args.round} report", "", f"Outputs judged: {len(rows)}",
+             f"Judge errors: {len(rows) - len(valid_rows)}", "",
+             f"Hard-fail rate (facts): {sum(row['hard_fail'] for row in rows)}/{len(rows)}" if rows else "Hard-fail rate (facts): n/a"]
     for engine, condition in groups:
-        group_rows = [row for row in rows if row["engine"] == engine and row["condition"] == condition]
-        lines.append(f"- {engine} / {condition}: {sum(row['hard_fail'] for row in group_rows)}/{len(group_rows)}")
-        for cause in hard_causes:
-            count = sum(bool(row["verdict"].get(cause)) if cause in ("invented", "dropped_facts") else bool(row["checks"].get(cause)) for row in group_rows)
-            lines.append(f"  - {cause}: {count}")
-    lines.extend(["", "## Sourced rule violations", ""])
-    introduced_violating = sum(any(item.get("introduced", True) for item in row["verdict"].get("rule_violations", []))
-                               for row in rows)
-    overall_rate = introduced_violating / len(rows) if rows else None
-    lines.append(
-        f"Outputs with any introduced sourced-rule violation: {introduced_violating}/{len(rows)} ({overall_rate:.1%})"
-        if overall_rate is not None else "Outputs with any introduced sourced-rule violation: n/a"
-    )
-    total_violating = sum(bool(row["verdict"].get("rule_violations", [])) for row in rows)
-    lines.append(f"Including inherited: {total_violating}/{len(rows)} outputs with violations")
-    for engine, condition in groups:
-        group_rows = [row for row in rows if row["engine"] == engine and row["condition"] == condition]
-        affected = sum(any(item.get("introduced", True) for item in row["verdict"].get("rule_violations", []))
-                       for row in group_rows)
-        rate = affected / len(group_rows) if group_rows else None
-        lines.append(
-            f"- {engine} / {condition}: outputs with introduced violations {affected}/{len(group_rows)} ({rate:.1%})"
-            if rate is not None else f"- {engine} / {condition}: outputs with violations n/a"
-        )
-        introduced_counts: dict[str, int] = {}
-        total_counts: dict[str, int] = {}
-        for row in group_rows:
-            for violation in row["verdict"].get("rule_violations", []):
-                rule_id = violation["rule"]
-                total_counts[rule_id] = total_counts.get(rule_id, 0) + 1
-                if violation.get("introduced", True):
-                    introduced_counts[rule_id] = introduced_counts.get(rule_id, 0) + 1
-        for rule_id, count in sorted(introduced_counts.items()):
-            lines.append(f"  - {rule_id}: {count}")
-        lines.append(f"  - including inherited: {sum(total_counts.values())} violations; " +
-                     ", ".join(f"{rule_id} {count}" for rule_id, count in sorted(total_counts.items())))
-    for field in ("naturalness", "genre_fit"):
-        lines.extend(["", f"## Mean {field}", "", "| Genre | " + " | ".join(f"{e}/{c}" for e, c in groups) + " |", "|---|" + "---|" * len(groups)])
-        for genre in sorted({row.get("genre", "") for row in valid_rows}):
+        subset = [row for row in rows if (row["engine"], row["condition"]) == (engine, condition)]
+        lines.append(f"- {engine} / {condition}: {sum(row['hard_fail'] for row in subset)}/{len(subset)}")
+
+    fields = {field for row in valid_rows for field in row.get("verdict", {})}
+    for field in ("human_likeness", "naturalness", "genre_fit"):
+        if field not in fields:
+            continue
+        lines.extend(["", f"## Mean {field}", "", "| Genre | " + " | ".join(f"{e}/{c}" for e, c in groups) + " |",
+                      "|---|" + "---|" * len(groups)])
+        for genre in sorted({row.get("genre", "") for row in valid_rows if field in row.get("verdict", {})}):
             cells = []
             for engine, condition in groups:
-                values = [row["verdict"][field] for row in valid_rows if row["genre"] == genre and row["engine"] == engine and row["condition"] == condition]
-                cells.append(f"{sum(values)/len(values):.2f}" if values else "n/a")
+                values = [row["verdict"][field] for row in valid_rows if row.get("genre") == genre and
+                          row["engine"] == engine and row["condition"] == condition and field in row.get("verdict", {})]
+                cells.append(f"{sum(values) / len(values):.2f}" if values else "n/a")
             lines.append(f"| {genre} | " + " | ".join(cells) + " |")
-        cells = []
+        values = []
         for engine, condition in groups:
-            values = [row["verdict"][field] for row in valid_rows if row["engine"] == engine and row["condition"] == condition]
-            cells.append(f"{sum(values)/len(values):.2f}" if values else "n/a")
-        lines.append("| Overall | " + " | ".join(cells) + " |")
+            group_values = [row["verdict"][field] for row in valid_rows if row["engine"] == engine and
+                            row["condition"] == condition and field in row.get("verdict", {})]
+            values.append(f"{sum(group_values) / len(group_values):.2f}" if group_values else "n/a")
+        lines.append("| Overall | " + " | ".join(values) + " |")
+
+    lines.extend(["", "## AI tells", ""])
+    for engine, condition in groups:
+        subset = [row for row in valid_rows if (row["engine"], row["condition"]) == (engine, condition)
+                  and "ai_tells" in row.get("verdict", {})]
+        tells = [tell for row in subset for tell in row.get("verdict", {}).get("ai_tells", [])]
+        counts: dict[str, int] = {}
+        for tell in tells:
+            label = tell.get("tell", "")
+            counts[label] = counts.get(label, 0) + 1
+        mean = len(tells) / len(subset) if subset else None
+        lines.append(f"- {engine} / {condition}: mean {mean:.2f}" if mean is not None else f"- {engine} / {condition}: n/a")
+        lines.append("  - top tells: " + (", ".join(f"{name} ({count})" for name, count in
+                     sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:10]) or "none"))
+
+    lines.extend(["", "## Pairwise", ""])
+    pair_rows = load_jsonl(round_dir / "pair.jsonl")
+    if pair_rows:
+        for engine, comparison in sorted({(row["engine"], row["comparison"]) for row in pair_rows}):
+            subset = [row for row in pair_rows if row["engine"] == engine and row["comparison"] == comparison]
+            counts = {result: sum(row["result"] == result for row in subset) for result in ("win", "tie", "loss")}
+            lines.append(f"- {engine} / {comparison}: win {counts['win']}, tie {counts['tie']}, loss {counts['loss']}, "
+                         f"forfeits {sum(bool(row.get('forfeit')) for row in subset)}")
+    else:
+        lines.append("n/a")
+
+    human_arg = getattr(args, "human", None)
+    human_dir = Path(human_arg).expanduser() if human_arg else Path.home() / ".humanizer-kr/samples"
+    stats_path = round_dir / "stats.json"
+    objective = json.loads(stats_path.read_text(encoding="utf-8")) if stats_path.exists() else \
+        compute_stats(evals_dir, round_dir, human_dir if human_dir.is_dir() else None)
+    lines.extend(["", "## Objective stats vs human", ""])
+    human_stats = objective.get("human")
+    lines.append(f"human reference: {human_stats['count']} files" if human_stats else "human reference: none")
+    for group, values in objective.items():
+        if group == "human":
+            continue
+        mean = values.get("mean", {})
+        distances = [f"{metric} {mean[metric]:.3f} (distance {abs(mean[metric] - human_stats['mean'][metric]):.3f})"
+                     if mean.get(metric) is not None and human_stats and human_stats.get("mean", {}).get(metric) is not None
+                     else f"{metric} {mean.get(metric) if mean.get(metric) is not None else 'n/a'} (distance n/a)"
+                     for metric in STAT_METRICS]
+        lines.append(f"- {group} (n={values.get('count', 0)}): " + "; ".join(distances))
+
+    lines.extend(["", "## Sourced rule violations", ""])
+    introduced_violating = sum(any(item.get("introduced", True) for item in row.get("verdict", {}).get("rule_violations", [])) for row in rows)
+    rate = introduced_violating / len(rows) if rows else None
+    lines.append(f"Outputs with any introduced sourced-rule violation: {introduced_violating}/{len(rows)} ({rate:.1%})" if rate is not None else "Outputs with any introduced sourced-rule violation: n/a")
+    total_violating = sum(bool(row.get("verdict", {}).get("rule_violations", [])) for row in rows)
+    lines.append(f"Including inherited: {total_violating}/{len(rows)} outputs with violations")
+    for engine, condition in groups:
+        subset = [row for row in rows if (row["engine"], row["condition"]) == (engine, condition)]
+        violations = [v for row in subset for v in row.get("verdict", {}).get("rule_violations", [])]
+        introduced_counts: dict[str, int] = {}
+        total_counts: dict[str, int] = {}
+        for violation in violations:
+            rule_id = violation.get("rule", "unknown")
+            total_counts[rule_id] = total_counts.get(rule_id, 0) + 1
+            if violation.get("introduced", True):
+                introduced_counts[rule_id] = introduced_counts.get(rule_id, 0) + 1
+        lines.append(f"- {engine} / {condition}: introduced {sum(introduced_counts.values())}; total {len(violations)}")
+        lines.extend(f"  - {rule_id}: {count}" for rule_id, count in sorted(introduced_counts.items()))
+        lines.append("  - including inherited: " + ", ".join(f"{rule_id} {count}" for rule_id, count in sorted(total_counts.items())))
     audit_groups = []
     for engine, condition in groups:
-        subset = [row for row in rows if row["engine"] == engine and row["condition"] == condition]
-        before = sum(row["audit_before"] for row in subset) / len(subset) if subset else 0
-        after = sum(row["audit_after"] for row in subset) / len(subset) if subset else 0
+        subset = [row for row in rows if (row["engine"], row["condition"]) == (engine, condition)]
+        before = sum(row.get("audit_before", 0) for row in subset) / len(subset) if subset else 0
+        after = sum(row.get("audit_after", 0) for row in subset) / len(subset) if subset else 0
         audit_groups.append(f"{engine}/{condition}: {before:.2f} -> {after:.2f}")
-    lines.extend(["", "Audit findings mean before -> after: " + ("; ".join(audit_groups) if audit_groups else "n/a")])
+    lines.extend(["", "## Audit findings", "", "Mean before -> after: " + ("; ".join(audit_groups) if audit_groups else "n/a")])
     picks = [pick for pick in load_jsonl(round_dir / "picks.jsonl") if "winner" in pick]
     decisive = [pick for pick in picks if pick["winner"] in ("a", "b")]
-    current_wins = sum(pick[f"{pick['winner']}_label"] == "current" for pick in decisive)
+    current_wins = sum(pick.get(f"{pick['winner']}_label") == "current" for pick in decisive)
     ties = sum(pick["winner"] == "t" for pick in picks)
-    if picks:
-        lines.append(f"Human win rate (current): {current_wins}/{len(decisive)}" if decisive else "Human win rate: n/a (no decisive picks)")
-        lines.append(f"Human ties: {ties}")
-    else:
-        lines.append("Human win rate: n/a (no picks)")
-        lines.append("Human ties: 0")
-    disagreements = []
-    by_output = {row["output"]: row for row in rows}
-    for pick in picks:
-        if pick["winner"] not in ("a", "b"):
-            continue
-        current_path = f"outputs/{pick['engine']}/skill/{Path(pick['input']).stem}.md"
-        current_plain = round_dir / "outputs" / pick["engine"] / "plain" / f"{Path(pick['input']).stem}.md"
-        if args.round == 1 or current_plain.exists():
-            baseline_condition = "plain"
-            baseline_round = round_dir
-        else:
-            baseline_condition = "skill"
-            baseline_round = evals_dir / "rounds" / str(args.round - 1)
-        baseline_path = f"outputs/{pick['engine']}/{baseline_condition}/{Path(pick['input']).stem}.md"
-        if baseline_round != round_dir:
-            continue
-        current_row, baseline_row = by_output.get(current_path), by_output.get(baseline_path)
-        if not current_row or not baseline_row or "error" in current_row["verdict"] or "error" in baseline_row["verdict"]:
-            continue
-        human_label = pick[f"{pick['winner']}_label"]
-        judge_label = "current" if current_row["verdict"]["naturalness"] > baseline_row["verdict"]["naturalness"] else "baseline"
-        if current_row["verdict"]["naturalness"] != baseline_row["verdict"]["naturalness"] and human_label != judge_label:
-            disagreements.append(pick["input"])
-    lines.extend([f"Judge-human disagreements: {len(disagreements)}", *(f"- {item}" for item in disagreements)])
-    humans = list((evals_dir / "human").glob("*.ko.md")) if (evals_dir / "human").exists() else []
-    flagged = sum(bool(audit_module.audit(path.read_text(encoding="utf-8"))) for path in humans)
-    lines.append(f"Audit false-positive rate: {flagged}/{len(humans)}" if humans else "Audit false-positive rate: n/a")
+    lines.extend(["", "## Human picks", "", f"Human win rate (current): {current_wins}/{len(decisive)}" if decisive else
+                  "Human win rate: n/a (no picks)" if not picks else "Human win rate: n/a (no decisive picks)",
+                  f"Human ties: {ties}"])
+
     if args.round > 1:
         previous = load_jsonl(evals_dir / "rounds" / str(args.round - 1) / "judge.jsonl")
         if previous:
@@ -489,19 +654,22 @@ def report(args: argparse.Namespace) -> int:
             for engine in sorted({row["engine"] for row in rows + previous}):
                 old_skill = [row for row in previous if row["engine"] == engine and row["condition"] == "skill"]
                 new_skill = [row for row in rows if row["engine"] == engine and row["condition"] == "skill"]
-                common = {Path(row["output"]).name for row in old_skill} & \
-                    {Path(row["output"]).name for row in new_skill}
+                common = {Path(row["output"]).name for row in old_skill} & {Path(row["output"]).name for row in new_skill}
                 lines.append(f"- {engine} (common inputs: {len(common)})")
-                for metric in ("hard_fail", "naturalness", "genre_fit"):
-                    old = [row for row in old_skill if Path(row["output"]).name in common and "error" not in row["verdict"]]
-                    new = [row for row in new_skill if Path(row["output"]).name in common and "error" not in row["verdict"]]
+                metrics = ["hard_fail", "human_likeness"]
+                if old_skill and new_skill and any("naturalness" in row.get("verdict", {}) for row in old_skill) and \
+                        any("naturalness" in row.get("verdict", {}) for row in new_skill):
+                    metrics.append("naturalness")
+                for metric in metrics:
+                    old = [row for row in old_skill if Path(row["output"]).name in common and "error" not in row.get("verdict", {})]
+                    new = [row for row in new_skill if Path(row["output"]).name in common and "error" not in row.get("verdict", {})]
                     if metric == "hard_fail":
-                        old_values = [bool(row["verdict"].get("invented") or row["verdict"].get("dropped_facts") or row["checks"]["missing_must_keep"] or row["checks"]["missing_numbers"]) for row in old]
-                        new_values = [bool(row["verdict"].get("invented") or row["verdict"].get("dropped_facts") or row["checks"]["missing_must_keep"] or row["checks"]["missing_numbers"]) for row in new]
-                        old_mean, new_mean = (sum(old_values) / len(old_values) if old_values else None), (sum(new_values) / len(new_values) if new_values else None)
+                        old_values, new_values = [int(_hard_fail(row)) for row in old], [int(_hard_fail(row)) for row in new]
                     else:
-                        old_mean = sum(row["verdict"][metric] for row in old) / len(old) if old else None
-                        new_mean = sum(row["verdict"][metric] for row in new) / len(new) if new else None
+                        old_values = [row["verdict"][metric] for row in old if metric in row.get("verdict", {})]
+                        new_values = [row["verdict"][metric] for row in new if metric in row.get("verdict", {})]
+                    old_mean = sum(old_values) / len(old_values) if old_values else None
+                    new_mean = sum(new_values) / len(new_values) if new_values else None
                     lines.append(f"  - {metric}: {old_mean if old_mean is not None else 'n/a'} -> {new_mean if new_mean is not None else 'n/a'}")
     report_text = "\n".join(lines) + "\n"
     (round_dir / "report.md").write_text(report_text, encoding="utf-8")
@@ -510,7 +678,7 @@ def report(args: argparse.Namespace) -> int:
 
 
 def main() -> None:
-    """Parse the four public subcommands."""
+    """Parse the evaluation loop commands."""
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
     def common(command: argparse.ArgumentParser) -> None:
@@ -533,6 +701,15 @@ def main() -> None:
     judge_parser.add_argument("--judge-model", default="claude-opus-5-5")
     judge_parser.add_argument("--jobs", type=int, default=4)
     judge_parser.set_defaults(handler=judge)
+    pair_parser = commands.add_parser("pair")
+    common(pair_parser)
+    pair_parser.add_argument("--judge-engine", default="claude")
+    pair_parser.add_argument("--judge-model", default="claude-opus-5-5")
+    pair_parser.set_defaults(handler=pair)
+    stats_parser = commands.add_parser("stats")
+    common(stats_parser)
+    stats_parser.add_argument("--human", help="human reference directory (default: ~/.humanizer-kr/samples)")
+    stats_parser.set_defaults(handler=stats)
     pick_parser = commands.add_parser("pick")
     common(pick_parser)
     pick_parser.add_argument("--n", type=int, default=10)
@@ -541,6 +718,7 @@ def main() -> None:
     pick_parser.set_defaults(handler=pick)
     report_parser = commands.add_parser("report")
     common(report_parser)
+    report_parser.add_argument("--human", help="human reference directory (default: ~/.humanizer-kr/samples)")
     report_parser.set_defaults(handler=report)
     args = parser.parse_args()
     raise SystemExit(args.handler(args))

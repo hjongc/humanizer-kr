@@ -20,8 +20,10 @@ SPEC.loader.exec_module(loop)
 class EvalLoopTests(unittest.TestCase):
     def test_judge_prompt_includes_both_sourced_rule_sets_and_matrix(self) -> None:
         prompt = loop.judge_prompt("public-notice", [], "원문", "결과")
+        self.assertIn("## Korean AI-Writing Tells", prompt)
+        self.assertNotIn("## Naturalness Rubric", prompt)
         self.assertIn("| N8 |", prompt)
-        self.assertIn("| N-rules |", prompt)
+        self.assertIn("## Sourced Public-Language Rules", prompt)
         self.assertIn('"rule": "S7 or N8"', prompt)
         self.assertIn("dropped_facts means verifiable content only", prompt)
         self.assertIn("Removed praise, filler, greetings, closing courtesies, and vague expectations are NOT dropped facts", prompt)
@@ -51,20 +53,25 @@ class EvalLoopTests(unittest.TestCase):
             {"missing_must_keep": ["설정 > 알림"], "missing_numbers": ["3"]},
         )
 
-    def test_verdict_accepts_fenced_and_embedded_json(self) -> None:
+    def test_verdict_accepts_new_schema_and_filters_quotes(self) -> None:
         verdict = {"invented": [], "dropped_facts": [], "register_ok": True,
-                   "reader_action_ok": True, "genre_fit": 4, "naturalness": 3,
-                   "residual_tells": [], "note": "ok"}
+                   "ai_tells": [{"tell": "connector", "quote": "또한"},
+                                {"tell": "fabricated", "quote": "없는 인용"}],
+                   "human_likeness": 3, "note": "ok", "rule_violations": []}
         encoded = json.dumps(verdict)
         expected = {**verdict, "rule_violations": []}
         self.assertEqual(loop.parse_verdict(f"```json\n{encoded}\n```"), expected)
         self.assertEqual(loop.parse_verdict(f"결과: {encoded} 끝"), expected)
         verdict["rule_violations"] = [{"rule": "S8", "quote": "쓰여진 문장"},
                                       {"rule": "N8", "quote": "missing quote"}]
+        verdict["ai_tells"] = [{"tell": "spacing", "quote": "쓰여진 문장"},
+                               {"tell": "other", "quote": "missing quote"}]
         self.assertEqual(
             loop.parse_verdict(json.dumps(verdict), output="책에 쓰여진 문장" )["rule_violations"],
             [{"rule": "S8", "quote": "쓰여진 문장", "introduced": True}],
         )
+        self.assertEqual(loop.parse_verdict(json.dumps(verdict), output="책에 쓰여진 문장")["ai_tells"],
+                         [{"tell": "spacing", "quote": "쓰여진 문장"}])
         verdict["rule_violations"] = [{"rule": "N8", "quote": "위반", "introduced": False}]
         self.assertFalse(loop.parse_verdict(json.dumps(verdict))["rule_violations"][0]["introduced"])
 
@@ -124,7 +131,7 @@ class EvalLoopTests(unittest.TestCase):
             round_two_judge = evals_dir / "rounds" / "2" / "judge.jsonl"
             round_two_rows = [json.loads(line) for line in round_two_judge.read_text(encoding="utf-8").splitlines()]
             added_input = next(row for row in round_two_rows if "proposal-6" in row["output"] and row["condition"] == "skill")
-            added_input["verdict"].update({"naturalness": 5, "genre_fit": 1, "invented": ["새 사실"]})
+            added_input["verdict"].update({"human_likeness": 5, "invented": ["새 사실"]})
             round_two_judge.write_text(
                 "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in round_two_rows),
                 encoding="utf-8",
@@ -134,8 +141,7 @@ class EvalLoopTests(unittest.TestCase):
             report = (evals_dir / "rounds" / "2" / "report.md").read_text(encoding="utf-8")
             self.assertIn("Delta vs round 1", report)
             self.assertIn("common inputs: 1", report)
-            self.assertIn("naturalness: 3.0 -> 3.0", report)
-            self.assertIn("genre_fit: 3.0 -> 3.0", report)
+            self.assertIn("human_likeness: 3.0 -> 3.0", report)
             self.assertIn("hard_fail: 0.0 -> 0.0", report)
             self.assertIn("Judge errors: 0", report)
 
@@ -211,6 +217,87 @@ class EvalLoopTests(unittest.TestCase):
             self.assertIn("fresh plain", shown)
             self.assertNotIn("previous skill", shown)
 
+    def test_text_stats_hand_computed_korean_example(self) -> None:
+        values = loop.text_stats("---\nkind: sample\n---\n# 제목\n또한, 개선성은 빠릅니다. 사용자는 직접 합니다!")
+        self.assertAlmostEqual(values["sent_len_mean"], 11.0)
+        self.assertAlmostEqual(values["sent_len_cv"], 1 / 11)
+        self.assertAlmostEqual(values["ending_diversity"], 0.5)
+        self.assertAlmostEqual(values["connector_rate"], 0.5)
+        self.assertAlmostEqual(values["nominal_rate"], 100 / 6)
+
+    def test_pair_fake_forfeits_hard_fail_and_resumes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir)
+            inputs = evals_dir / "inputs"
+            inputs.mkdir()
+            (inputs / "docs-1.ko.md").write_text(
+                '---\ngenre: docs\nsource: generated\nmust_keep: []\n---\n첫 원문입니다.', encoding="utf-8")
+            (inputs / "docs-2.ko.md").write_text(
+                '---\ngenre: docs\nsource: generated\nmust_keep: []\n---\n둘째 원문입니다.', encoding="utf-8")
+            round_dir = evals_dir / "rounds" / "1"
+            rows = []
+            for name in ("docs-1.ko.md", "docs-2.ko.md"):
+                for condition in ("skill", "plain"):
+                    path = round_dir / "outputs" / "fake" / condition / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(f"{condition} {name}", encoding="utf-8")
+                    rows.append({"output": f"outputs/fake/{condition}/{name}", "engine": "fake",
+                                 "condition": condition, "verdict": {"invented": ["추가 사실"]
+                                 if name == "docs-1.ko.md" and condition == "skill" else [], "dropped_facts": []},
+                                 "checks": {"missing_must_keep": [], "missing_numbers": []}})
+            round_dir.mkdir(parents=True, exist_ok=True)
+            (round_dir / "judge.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            args = self.args(evals_dir, 1)
+            self.assertEqual(loop.pair(args), 0)
+            pair_path = round_dir / "pair.jsonl"
+            pair_rows = [json.loads(line) for line in pair_path.read_text().splitlines()]
+            fail_pair = next(row for row in pair_rows if row["input"] == "docs-1.ko.md" and row["comparison"] == "skill_vs_plain")
+            self.assertEqual((fail_pair["result"], fail_pair["forfeit"], fail_pair["orders"]), ("loss", True, []))
+            tie_pair = next(row for row in pair_rows if row["input"] == "docs-2.ko.md" and row["comparison"] == "skill_vs_plain")
+            self.assertEqual((tie_pair["result"], tie_pair["forfeit"], tie_pair["orders"]), ("tie", False, ["tie", "tie"]))
+            self.assertEqual(len(pair_rows), 4)
+            self.assertEqual(loop.pair(args), 0)
+            self.assertEqual(len(pair_path.read_text().splitlines()), 4)
+
+    def test_stats_aggregates_human_files_without_copying_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir)
+            (evals_dir / "inputs").mkdir()
+            (evals_dir / "inputs" / "docs-1.ko.md").write_text(
+                '---\ngenre: docs\nmust_keep: []\n---\n입력 문장입니다.', encoding="utf-8")
+            human_dir = evals_dir / "private-human"
+            human_dir.mkdir()
+            private_sentence = "사람만 쓴 비공개 참조 문장입니다."
+            (human_dir / "sample.md").write_text(private_sentence, encoding="utf-8")
+            args = self.args(evals_dir, 1)
+            args.human = str(human_dir)
+            self.assertEqual(loop.stats(args), 0)
+            saved = (evals_dir / "rounds" / "1" / "stats.json").read_text(encoding="utf-8")
+            self.assertNotIn(private_sentence, saved)
+            data = json.loads(saved)
+            self.assertEqual(data["human"]["count"], 1)
+            self.assertIn("sent_len_mean", data["human"]["mean"])
+
+    def test_report_accepts_old_round_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir)
+            round_dir = evals_dir / "rounds" / "3"
+            round_dir.mkdir(parents=True)
+            old_row = {"output": "outputs/fake/skill/docs-1.ko.md", "engine": "fake", "condition": "skill",
+                       "genre": "docs", "verdict": {"invented": [], "dropped_facts": [],
+                       "register_ok": True, "reader_action_ok": True, "genre_fit": 3,
+                       "naturalness": 4, "residual_tells": [], "note": "old", "rule_violations": []},
+                       "checks": {"missing_must_keep": [], "missing_numbers": []},
+                       "audit_before": 0, "audit_after": 0}
+            (round_dir / "judge.jsonl").write_text(json.dumps(old_row) + "\n", encoding="utf-8")
+            with patch("builtins.print"):
+                self.assertEqual(loop.report(self.args(evals_dir, 3)), 0)
+            report = (round_dir / "report.md").read_text(encoding="utf-8")
+            self.assertIn("## Mean naturalness", report)
+            self.assertIn("## Mean genre_fit", report)
+            self.assertNotIn("## Mean human_likeness", report)
+            self.assertIn("- fake / skill: n/a", report)
+
     @staticmethod
     def args(evals_dir: Path, round_number: int):
         class Arguments:
@@ -226,6 +313,7 @@ class EvalLoopTests(unittest.TestCase):
         arguments.engine_check = False
         arguments.judge_engine = "fake"
         arguments.judge_model = "unused"
+        arguments.human = None
         arguments.seed = None
         arguments.n = 1
         arguments.with_plain = False
