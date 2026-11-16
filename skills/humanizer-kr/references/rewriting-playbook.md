@@ -53,11 +53,12 @@ After: `아래 내용을 확인해 주세요.`
 Problem: a notice or support reply uses a vague action phrase such as `필요한 조치`
 or `진행해 주세요`.
 
-Edit: keep the action as vague as the source. Remove the phrase only when it is
-empty filler; do not add or infer a more specific action.
+Edit: keep the action as vague as the source; trim only the padding around it
+(`진행해`). A request to act is content, not filler, so do not delete it, and do
+not add or infer a more specific action.
 
 Before: `확인한 뒤 필요한 조치를 진행해 주세요.`
-After: `확인해 주세요.`
+After: `확인한 뒤 필요한 조치를 해 주세요.`
 
 ### Passive or Availability Chain
 
