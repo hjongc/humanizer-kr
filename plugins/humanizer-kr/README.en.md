@@ -191,6 +191,9 @@ The after examples include multiple rewrite candidates such as a safe version, a
 
 ## Source basis
 
+- The Korean Ministry of Government Legislation's *Easy-to-Understand Statutes Drafting Standards*, 10th edition (revised and expanded), is the source for sentence rules S1–S13.
+- The Ministry of Culture, Sports and Tourism and National Institute of Korean Language's *Guide to Writing Easy Public Language* (2014), and NIKL's *Public Language Made Easy at a Glance*, revised edition (2022), are the sources for public-language rules N1–N13.
+
 See `skills/humanizer-kr/references/korean-source-rules.md` for the trusted Korean source map and how the skill uses each source.
 
 Use `skills/humanizer-kr/references/rewriting-playbook.md` for pattern-specific rewrite strategies and over-editing guardrails.

@@ -259,7 +259,9 @@ Humanizer KR는 이런 표현을 단어 하나만 보고 지우지 않습니다.
 
 ## 참고 기준
 
-- `skills/humanizer-kr/references/korean-source-rules.md`: 국립국어원 공공언어, 표준국어대사전, 우리말샘, 외래어 표기와 순화어 판단 기준
+- 법제처 「알기 쉬운 법령 정비기준」 제10판(수정증보판): 문장 규칙 S1–S13의 출처
+- 문화체육관광부·국립국어원 「쉬운 공공언어 쓰기 길잡이」(2014), 국립국어원 「(개정판) 한눈에 알아보는 공공언어 바로 쓰기」(2022): 공공언어 규칙 N1–N13의 출처
+- `skills/humanizer-kr/references/korean-source-rules.md`: 출처 등급, 문장·공공언어 규칙, 확인 대기 중인 자료
 - `skills/humanizer-kr/references/rewriting-playbook.md`: 패턴별 윤문 기준과 과윤문 방지 기준
 - [Wikipedia: Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing): AI 문체를 패턴 단위로 보는 접근 방식
 - [blader/humanizer](https://github.com/blader/humanizer): README 구성과 패턴 문서화 방식의 참고 프로젝트

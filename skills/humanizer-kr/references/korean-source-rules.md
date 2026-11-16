@@ -1,8 +1,94 @@
 # Korean Source Rules
 
-Use this file when a Korean rewrite needs source-grounded judgment rather than taste alone.
+Use this file when a Korean rewrite needs source-grounded sentence guidance.
+
+## Source Tiers
+
+- **A — verified Korean official primary text:** read directly; the sourced rules below are paraphrased from it.
+- **B — international standard:** principles only. Do not convert rules into Korean-specific thresholds without a verified source.
+- **H — heuristic AI-writing tells in `SKILL.md`:** observations from editing practice, not sourced rules. Tier H is observation, not sourced.
 
 ## Trusted Source Map
+
+### Korean Ministry of Government Legislation (MOLEG)
+
+**「알기 쉬운 법령 정비기준」 제10판(수정증보판)**, posted 2026-01-22
+URL: https://www.moleg.go.kr/board.es?mid=a10108030000&bid=0001&act=view&list_no=146407
+
+Use this official guide as the source for sentence rules S1–S13 below. The rules are paraphrased in our own words with page references. Since no licence type was found, reproduce only short expression pairs of a few words; do not copy statute examples or longer passages.
+
+### Tier A — Ministry of Culture, Sports and Tourism · National Institute of Korean Language (NIKL)
+
+**「쉬운 공공언어 쓰기 길잡이」 (2014)**  
+URL: https://www.korean.go.kr/front/etcData/etcDataView.do?mn_id=208&etc_seq=399  
+Licence: 공공누리 제1유형(출처표시).
+
+Use this official guide as a source for public-language rules N1–N11 and N13 below. Rules are paraphrased with page references. Short expression pairs may be quoted with attribution.
+
+**「(개정판) 한눈에 알아보는 공공언어 바로 쓰기」 (2022)**  
+URL: https://www.korean.go.kr/front/etcData/etcDataView.do?mn_id=208&etc_seq=699  
+Licence: 공공누리 제4유형(출처표시+상업적 이용금지+변경금지).
+
+Use this guide as a source for rules N4–N6, N8, N12, and N13 below. Paraphrase only, cite page numbers, and do not reproduce its example text.
+
+### ASD-STE100
+
+**Tier B; known from secondary descriptions; spec not read.** Applies only to `docs` and procedural steps, at reduced strength. Use principles only: one instruction per sentence, one topic per paragraph, active voice, and consistent terms. Do not convert English word-count limits into Korean numbers. The spec is under ASD copyright; no spec text is reproduced here.
+
+**Pending sources:** 국립국어원 「쉬운 공문서 쓰기 길잡이」 (2022, etc_seq=700; 제3유형) remains pending because its PDF text layer is mostly missing. ISO 24495-1 also remains pending. No rules below are attributed to either source.
+
+## Sourced Sentence Rules
+
+| ID | Rule | Source (page) | Short pair | Exception |
+|---|---|---|---|---|
+| S1 | Keep subject, object, and predicate; omit only what context makes obvious. | 120–121 | — | A repeated subject may be dropped. |
+| S2 | Keep the subject and predicate close, and make them agree. | 120, 196 | — | — |
+| S3 | Keep one topic per sentence; split long sentences and turn complex enumerations into a list. | 120, 135–147 | — | — |
+| S4 | Delete duplicated, self-evident, or needless content. | 148–151 | `과반수 이상 → 과반수`; `~에 대하여 이를 → ~를` | — |
+| S5 | Turn double negatives into positive statements. | 157 | — | — |
+| S6 | Write the referent instead of a pointer such as `이`, `그`, or `해당` when it is not immediate. | 159 | — | — |
+| S7 | Prefer active voice; name the person or organisation when it acts. | 166 | `학교법인으로부터 제출된 → 학교 법인이 제출한` | Passive voice is natural with an inanimate subject (168), as in `소멸시효가 완성된 때`. |
+| S8 | Do not use double passives. | 167–168 | `쓰여진 → 쓰인`; `담겨진 → 담긴`; `구획되어진 → 구획된` | None. |
+| S9 | Unpack noun strings with particles or verbs. | 170–171 | `호환성 제고를 위하여 → 호환성을 높이기 위하여` | Keep a noun string that is easy and natural (171). |
+| S10 | Reduce chained `명사+의`; use `이/가` or `을/를` where they express the relationship. | 169–170 | — | — |
+| S11 | Replace literal-translation phrasing with a direct Korean expression. | 170–196 | `~에 있어서 → ~에서, ~할 때`; `~을 요하는 → ~이 필요한`; `~에 한하여 → ~만`; `없는 한 → 없으면`; `~에 의하여 → ~가, ~로, ~에 따라` | Keep `~에 의하여` when it marks a cause (196). |
+| S12 | Put a modifier directly before what it modifies. | 196–197 | — | — |
+| S13 | Use a table, formula, or figure when it conveys the content better. | 121, 200 | — | — |
+
+## Sourced Public-Language Rules
+
+| ID | Rule | Source (page) | Short pair | Exception |
+|---|---|---|---|---|
+| N1 | Avoid commanding or authoritarian endings toward the reader. | G14 12 | `다음과 같이 작성할 것. → 다음과 같이 작성해 주십시오.`; `7일 내로 즉시 제출 바람. → 7일 내로 제출해 주십시오.` | — |
+| N2 | Avoid discriminatory wording about gender, region, disability, race, ethnicity, or family form. | G14 13 | — | — |
+| N3 | Spell out abbreviations and specialist terms; avoid overusing foreign words or foreign script. | G14 14–16 | — | Keep terms the intended readers already use. |
+| N4 | Choose words that fit the context and make sentence parts agree. | G14 17–18; B22 11 | — | — |
+| N5 | Do not over-omit sentence parts, particles, or endings. | G14 18; B22 12 | — | — |
+| N6 | Keep sentences short, separate distinct information into separate sentences, and use natural word order. Neither guide sets a numeric limit. | G14 19; B22 11 | — | — |
+| N7 | Use `에게` for people and `에` for organisations and things. | G14 19 | `축산 농가에게는 → 축산 농가에는` | — |
+| N8 | Avoid translationese such as `~에 대해서`, `~에 의해(서) ~되다`, `~에 있어서`, `~에 있다` for `~이다`, and an inanimate or abstract subject performing a human act. | G14 20; B22 12–13 | `선정된 점포에 대해서는 → 선정된 점포에는`; `품질에 있어서 세계 최고 → 품질은 세계 최고` | — |
+| N9 | When three or more nouns run together, add particles or predicates. | G14 20 | `신속대응을 위해 → 신속하게 대응하기 위해`; `적극 이용 바람 → 적극적으로 이용하기 바랍니다.` | — |
+| N10 | Remove ambiguity by giving a date or count and replacing vague `및` where needed. | G14 20–21; B22 11 | `첫째 주 토요일 → 첫 번째 토요일` | — |
+| N11 | Make clear whether something is required, optional, forbidden, or an exception. | G14 21 | — | — |
+| N12 | Join only parallel structures with `-고`, `-며`, or `와/과`. | B22 12 | — | — |
+| N13 | Put the conclusion or key point first, followed by reasons; notices state the audience, benefit or action, required documents, and contact; keep each paragraph on one connected topic. | G14 22–23; B22 13–14 | — | — |
+
+**Overlap:** N6 ≈ S3, N8 ≈ S7/S11, N9 ≈ S9, and N12 relates to S2. When both apply, cite either rule.
+
+## Genre Strength Matrix
+
+| Genre | S-rules | N-rules | Voice profile conflict |
+|---|---|---|---|
+| public-notice | required | required | rule wins; N1 and N2 are never overridden by a profile |
+| docs | required | recommended | rule wins for S-rules; N1 and N2 are never overridden by a profile |
+| support-email, proposal | recommended | recommended; N1 required for support-email | profile wins, except S8; N1 and N2 are never overridden by a profile |
+| product-copy, social-post | S8 and S11 only; the rest advisory | N8 and N10 only; the rest advisory | profile wins, except S8; N1 and N2 are never overridden by a profile |
+
+These rules were written for public language and statutes; applying all of them to casual genres makes text stiff, which is why strength varies.
+
+## Vocabulary and Usage Sources
+
+These sources support word choice, spelling, and usage checks. They are not the basis of the sourced sentence and public-language rules above.
 
 ### National Institute of Korean Language public-language review
 

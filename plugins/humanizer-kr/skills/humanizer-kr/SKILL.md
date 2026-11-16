@@ -20,7 +20,7 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
    - concise internal note: plain declarative Korean with minimal honorific padding
 5. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
 6. Run the Korean audit pass before returning the final answer.
-7. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre.
+7. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre; check it against sourced rules (S and N) at the strength required for the genre.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
 
@@ -75,7 +75,7 @@ A profile describes the user's own voice. Do not build one to imitate another re
 
 ## Korean AI-Writing Tells
 
-Look for clusters, not isolated words. The five groups below are the editing frame; the 20 patterns are observation signals, not banned words. Apply them after identifying the genre, reader, and register.
+These tells are tier H heuristics without an official source; where a tell overlaps an S-rule, the S-rule is the basis. Look for clusters, not isolated words. The five groups below are the editing frame; the 20 patterns are observation signals, not banned words. Apply them after identifying the genre, reader, and register.
 
 Read `references/rewriting-playbook.md` when a rewrite needs a concrete edit strategy or when the first pass is safe but still bland. Do not promote a new tell into the main workflow until it has evidence, a clean negative example, and regression coverage.
 
@@ -150,6 +150,8 @@ Read `references/korean-source-rules.md` when:
 - building evaluation criteria for Korean writing quality
 
 Do not cite these sources mechanically in ordinary rewrites. Cite them only when the user asks for rationale, source basis, or style rules.
+
+Sourced rules (S and N) and their source pages are in `references/korean-source-rules.md`. Apply them at the strength set by its genre matrix; cite the rule ID and source only when the user asks for rationale.
 
 ## Optional Audit Script
 

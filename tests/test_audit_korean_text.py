@@ -49,6 +49,28 @@ BLOCKED_AFTER_PHRASES = [
 
 
 class AuditKoreanTextTests(unittest.TestCase):
+    def test_s8_double_passive_and_clean_negatives(self) -> None:
+        self.assertIn("double-passive", codes("책에 쓰여진 문장"))
+        for text in ("소멸시효가 완성된 때", "글자가 쓰인 종이"):
+            with self.subTest(text=text):
+                self.assertNotIn("double-passive", codes(text))
+
+    def test_s11_literal_translation_and_clean_negative(self) -> None:
+        self.assertIn("literal-translation", codes("추가 검토를 요하는 사안입니다."))
+        self.assertIn("literal-translation", codes("조선은 태조 이성계에 의해 건국되었다."))
+        self.assertNotIn("literal-translation", codes("지금 집에 있어요"))
+        self.assertNotIn("literal-translation", codes("조선은 태조 이성계가 건국했다."))
+
+    def test_n1_commanding_endings_are_genre_scoped(self) -> None:
+        self.assertIn("commanding-ending", quality_codes("7일 내로 즉시 제출 바람.", "public-notice"))
+        self.assertNotIn("commanding-ending", quality_codes("오늘은 바람이 붑니다.", "public-notice"))
+        self.assertNotIn("commanding-ending", quality_codes("다음과 같이 작성할 것.", "docs"))
+
+    def test_s4_redundant_wording_and_clean_negative(self) -> None:
+        self.assertIn("redundant-wording", codes("과반수 이상이 찬성했습니다."))
+        self.assertIn("redundant-wording", codes("그에 대하여 이를 검토했습니다."))
+        self.assertNotIn("redundant-wording", codes("과반수가 찬성했습니다"))
+
     def test_flags_translationese_and_inflated_praise(self) -> None:
         found = codes("또한 본 솔루션은 혁신적인 경험을 제공합니다. 이를 통해 생산성이 향상됩니다.")
         self.assertIn("translationese-connectors", found)

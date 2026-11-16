@@ -45,6 +45,24 @@ AFTER_EXAMPLE_GENRES = {
 
 RULES = [
     Rule(
+        "double-passive",
+        "double passive (S8)",
+        re.compile(r"(되어[지진졌]|(?:쓰여|보여|담겨|불려|읽혀|잊혀|놓여)[지진졌])"),
+        "Remove the extra passive marker (S8).",
+    ),
+    Rule(
+        "literal-translation",
+        "literal-translation phrasing (S11/N8)",
+        re.compile(r"(에 있어서|함에 있어|[을를] 요(하는|하며|하고|합니다|한다)|필요로 (하는|합니다|한다)|에 한하여|없는 한[ ,]|에 의해(?:서)? [^.\n]{0,30}(?:되었|됐|됩니다|된다|되어)|에 대해서는)"),
+        "Replace the literal-translation phrasing with a direct Korean expression (S11/N8).",
+    ),
+    Rule(
+        "redundant-wording",
+        "redundant wording (S4)",
+        re.compile(r"(과반수 이상|에 대하여 이를)"),
+        "Remove the duplicated or needless wording (S4).",
+    ),
+    Rule(
         "translationese-connectors",
         "translation-like connector",
         re.compile(r"(또한|더 나아가|이를 통해|나아가|결과적으로|전반적으로|궁극적으로|이러한 점에서|이를 바탕으로|이에 따라)"),
@@ -144,6 +162,13 @@ RULES = [
 
 
 QUALITY_RULES = [
+    QualityRule(
+        "commanding-ending",
+        "commanding ending (N1)",
+        re.compile(r"(?:할 것|바람)[.]?[ \t]*(?=$|[?!。])", re.MULTILINE),
+        "Use a polite request ending (N1).",
+        ("public-notice", "support-email"),
+    ),
     QualityRule(
         "weak-reader-action",
         "weak reader action",
