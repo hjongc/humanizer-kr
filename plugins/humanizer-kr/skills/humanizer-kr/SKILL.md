@@ -12,15 +12,16 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
 ## Core Workflow
 
 1. Identify the genre and reader: product copy, public notice, email, essay, documentation, proposal, social post, or spoken script.
-2. Preserve facts, intent, paragraph coverage, and constraints. Rewrite the language, not the underlying claims.
+2. Preserve facts, intent, paragraph coverage, and constraints. When cutting praise or filler, keep every factual element: UI paths and menu names verbatim (`설정 > 알림`), names, numbers, dates, conditions, and each distinct event or action. Do not merge two events into one. Rewrite the language, not the underlying claims. Never add facts.
 3. Look for `voice.md` in `./.humanizer-kr/` first, then `~/.humanizer-kr/`; load only that profile during a rewrite.
 4. Choose one register and keep it stable:
    - formal public/professional: `합니다`, `하십시오`
    - polite product/support: `해요`, `해주세요`
    - concise internal note: plain declarative Korean with minimal honorific padding
 5. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
-6. Run the Korean audit pass before returning the final answer.
-7. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre; check it against sourced rules (S and N) at the strength required for the genre.
+6. Check meaning in both directions: match every source claim to the rewrite with the same tense, degree, and terms; then match every rewrite claim to the source. Fix any mismatch or unsupported claim before continuing.
+7. Run the Korean audit pass before returning the final answer.
+8. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre; check it against sourced rules (S and N) at the strength required for the genre.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
 
@@ -35,6 +36,15 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
 - Warmth: remove ceremonial padding, but do not make support or public-facing text cold. Keep enough respect for the reader relationship.
 - Claim control: do not add benefits, examples, numbers, deadlines, app names, institutions, or causal claims that the source did not provide.
 - Voice match: use a sample or saved profile over generic polished Korean.
+
+### Meaning Lock
+
+- Keep tense and completion: `변경되었습니다` stays past.
+- Keep degree and modality: `제한됩니다` is not `할 수 없습니다`; an estimate is not a promise.
+- Keep domain terms and cost or price labels, such as `도입 비용`.
+- Keep relations between facts; do not join independent facts into a cause, condition, or time relation.
+- Preserve UI paths, names, numbers, and dates verbatim as specified in step 2.
+- Use no foreign word that the source does not contain.
 
 When the first rewrite is safe but bland, improve once more. Prefer a smaller, more specific sentence over a broader sentence with polished wording.
 
@@ -83,14 +93,14 @@ Read `references/rewriting-playbook.md` when a rewrite needs a concrete edit str
 
 Fix sentences where the claim is larger than the evidence. Lower broad claims into verified facts, specific actions, conditions, or explicit uncertainty.
 
-- Inflated praise: when `혁신적인`, `최적화된`, `강력한`, or similar praise appears before evidence, replace it with the actual feature, result, or behavior.
-- Vague authority: when `많은 전문가들은`, `업계에서는`, or `여러 연구에 따르면` lacks a source, add a specific source, narrow the claim, or remove the authority frame.
+- Inflated praise: replace praise with a concrete feature or result only when that content appears elsewhere in the same source. Otherwise delete the praise or keep a neutral word; never supply the concrete content yourself.
+- Vague authority: when `많은 전문가들은`, `업계에서는`, or `여러 연구에 따르면` lacks a source, name a specific source only if the source text provides it; otherwise narrow the claim or remove the authority frame.
 - Knowledge-gap disclaimer: when `정보는 제한적이지만` or `알려진 바는 많지 않지만` leads into speculation, separate what is known from what is unknown.
 - Generic positive conclusion: replace `앞으로의 행보가 기대됩니다` or `좋은 결과가 기대됩니다` with a known next step, plan, or modest close.
-- Hedging stack: when `상당히`, `비교적`, `~로 보입니다`, and `~할 수 있을 것으로 예상됩니다` pile up, keep the strongest claim the evidence supports.
+- Hedging stack: when hedges pile up, keep one plain hedge without raising the claim. An estimate (`~할 수 있을 것으로 보입니다`) must never become a promise (`~하겠습니다`).
 
 Before: `다음 업데이트에서 검색 필터와 저장 기능을 먼저 개선하며 앞으로의 행보가 기대됩니다.`
-After: `다음 업데이트에서는 검색 필터와 저장 기능을 먼저 개선합니다.`
+After: `다음 업데이트에서 검색 필터와 저장 기능을 먼저 개선합니다.`
 
 ### 2. Translationese and Vocabulary Density
 
@@ -101,16 +111,16 @@ Fix wording that sounds like a translated outline or business-English draft. Pre
 - Synonym cycling: when `사용자`, `고객`, `이용자`, and `클라이언트` refer to the same person, keep the clearest term consistent.
 
 Before: `또한, 이를 통해 사용자는 필요한 정보를 더 빠르게 찾고 헤매는 시간을 줄일 수 있습니다.`
-After: `사용자는 필요한 정보를 더 빨리 찾고 덜 헤맵니다.`
+After: `사용자는 필요한 정보를 더 빨리 찾고 헤매는 시간을 줄일 수 있습니다.`
 
 ### 3. Actors and Verbs
 
 Fix sentences where action disappears into nouns, passive endings, or vague availability claims. Make the actor and verb visible when the genre allows it.
 
 - Nominalized Korean: turn chains of `-화`, `-성`, `-적`, `것`, `부분`, `측면`, `기반으로`, or `중심으로` into verbs and concrete subjects.
-- Passive or availability chains: when `제공됩니다`, `진행됩니다`, `확인됩니다`, `가능합니다`, `저장됩니다`, or `처리됩니다` repeats, name who or what acts.
+- Passive or availability chains: when `제공됩니다`, `진행됩니다`, `확인됩니다`, `가능합니다`, `저장됩니다`, or `처리됩니다` repeats, name who or what acts only if the source identifies that actor.
 
-Before: `반복 업무 효율성 향상을 위한 자동화 기능 제공이 가능합니다.`
+Before: `반복 업무 효율성 향상을 위한 자동화 기능 제공이 가능하며, 반복 업무를 자동으로 처리해 시간을 줄입니다.`
 After: `반복 업무를 자동으로 처리해 시간을 줄입니다.`
 
 ### 4. Register and Relationship
@@ -123,7 +133,7 @@ Fix the relationship with the reader before polishing individual words. Keep res
 - Sycophantic or fake-candid openers: remove `정확히 보셨습니다`, `솔직히 말하면`, `사실은`, or `핵심은` when they add drama without content.
 
 Before: `사용자님께서는 아래 내용을 확인하시어 이용에 참고 부탁드립니다.`
-After: `아래 내용을 확인해 주세요.`
+After: `아래 내용을 확인하고 이용에 참고해 주세요.`
 
 ### 5. Structure and Rhythm
 

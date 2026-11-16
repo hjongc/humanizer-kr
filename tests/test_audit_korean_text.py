@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 import unittest
@@ -49,6 +50,32 @@ BLOCKED_AFTER_PHRASES = [
 
 
 class AuditKoreanTextTests(unittest.TestCase):
+    def test_public_before_after_pairs_do_not_invent_specifics(self) -> None:
+        # This lexical guard catches new specifics, but cannot judge semantic equivalence.
+        pair_pattern = re.compile(r"^Before: `(.+)`\nAfter: `(.+)`$", re.MULTILINE)
+        digit_pattern = re.compile(r"\d+")
+        latin_pattern = re.compile(r"\b[A-Za-z]+\b")
+        menu_path_pattern = re.compile(r"[\w가-힣-]+(?:\s*>\s*[\w가-힣-]+)+")
+        documents = (
+            ROOT / "skills" / "humanizer-kr" / "SKILL.md",
+            ROOT / "skills" / "humanizer-kr" / "references" / "rewriting-playbook.md",
+        )
+
+        for document in documents:
+            content = document.read_text(encoding="utf-8")
+            pairs = pair_pattern.findall(content)
+            self.assertTrue(pairs, f"No Before/After examples found in {document}")
+            self.assertEqual(len(pairs), len(re.findall(r"^Before:", content, re.MULTILINE)))
+            self.assertEqual(len(pairs), len(re.findall(r"^After:", content, re.MULTILINE)))
+            for before, after in pairs:
+                with self.subTest(document=document.name, before=before):
+                    self.assertLessEqual(set(digit_pattern.findall(after)), set(digit_pattern.findall(before)))
+                    self.assertLessEqual(
+                        {word.casefold() for word in latin_pattern.findall(after)},
+                        {word.casefold() for word in latin_pattern.findall(before)},
+                    )
+                    self.assertLessEqual(set(menu_path_pattern.findall(after)), set(menu_path_pattern.findall(before)))
+
     def test_s8_double_passive_and_clean_negatives(self) -> None:
         self.assertIn("double-passive", codes("책에 쓰여진 문장"))
         for text in ("소멸시효가 완성된 때", "글자가 쓰인 종이"):

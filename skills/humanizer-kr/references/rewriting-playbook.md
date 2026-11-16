@@ -21,21 +21,22 @@ keeps the user's facts and reader relationship intact.
 Problem: broad praise such as `혁신적인`, `최적화된`, `강력한`, or `차별화된`
 appears before evidence.
 
-Edit: replace praise with the actual feature, current behavior, or verified
-outcome. If no evidence exists, lower the claim.
+Edit: replace praise with a concrete feature or result only when that content
+appears elsewhere in the same source. Otherwise delete the praise or keep a
+neutral word; never supply the concrete content yourself.
 
-Before: `혁신적인 기능으로 최적화된 사용자 경험을 제공합니다.`
-After: `검색어를 입력하면 관련 문서를 한 화면에서 비교할 수 있습니다.`
+Before: `혁신적인 기능으로 문서를 검색할 수 있습니다.`
+After: `문서를 검색할 수 있습니다.`
 
 ### Translationese Connectors
 
 Problem: `또한`, `이를 통해`, `나아가`, or `결과적으로` carries the flow
 instead of the sentence itself.
 
-Edit: remove the signpost or name the real relationship.
+Edit: remove the signpost or name the relationship only when the source states it.
 
 Before: `이를 통해 사용자는 필요한 정보를 더 빠르게 찾을 수 있습니다.`
-After: `사용자는 필요한 정보를 더 빨리 찾습니다.`
+After: `사용자는 필요한 정보를 더 빨리 찾을 수 있습니다.`
 
 ### Honorific Padding
 
@@ -56,7 +57,7 @@ Edit: name the action when it is present in the source. If not, keep the line
 short and add a missing-detail note outside the rewrite.
 
 Before: `확인한 뒤 필요한 조치를 진행해 주세요.`
-After: `알림을 끄려면 설정에서 알림 옵션을 해제해 주세요.`
+After: `확인해 주세요.`
 
 ### Passive or Availability Chain
 
@@ -68,7 +69,7 @@ copy, `할 수 있습니다` is allowed when it describes a capability without
 repeating.
 
 Before: `설정 변경이 가능하며 결과는 자동으로 저장됩니다.`
-After: `설정을 바꾸면 시스템이 결과를 자동으로 저장합니다.`
+After: `설정을 바꿀 수 있고 결과는 자동으로 저장됩니다.`
 
 ### Change-Anchored Documentation
 
@@ -78,8 +79,8 @@ or `변경되었습니다` when the reader needs the current behavior.
 Edit: write the current state. Keep change wording only in changelogs,
 migration guides, and release notes.
 
-Before: `자동 저장 기능이 추가되었습니다.`
-After: `입력한 내용은 자동으로 저장됩니다.`
+Before: `자동 저장 기능이 추가되었습니다. 이제 입력한 내용은 자동으로 저장됩니다.`
+After: `자동 저장 기능이 추가되었습니다. 입력한 내용은 자동으로 저장됩니다.`
 
 ### Chatbot Artifacts
 
@@ -100,7 +101,7 @@ Edit: keep structure only when it helps scanning. Otherwise use one sentence,
 plain bullets, or a small table.
 
 Before: `- **속도:** 페이지 속도가 개선되었습니다.`
-After: `- 페이지가 더 빨리 열립니다.`
+After: `- 페이지 속도가 개선되었습니다.`
 
 ### Voice Match
 
@@ -119,4 +120,10 @@ institution that the source did not provide.
 
 Edit: remove the added material. If the sentence needs evidence, ask for it
 outside the rewrite.
+
+### Over-Compression
+
+Problem: cutting words removes a path or merges distinct actions.
+Before: `설정 > 알림에서 매주 월요일 오전 9시에 요약을 받을 수 있습니다`
+After: `설정 > 알림에서 매주 월요일 오전 9시에 요약을 받을 수 있어요`
 
