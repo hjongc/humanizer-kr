@@ -39,7 +39,15 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
 ### Meaning Lock
 
 - Keep tense and completion: `변경되었습니다` stays past.
-- Keep degree and modality: `제한됩니다` is not `할 수 없습니다`; an estimate is not a promise.
+- Keep degree and modality; preserve these distinctions:
+  - obligation: `~해야 합니다` is not `~합니다`; `서류를 내셔야 접수됩니다` is not `서류를 내 주세요` (which loses the precondition).
+  - required step: `비밀번호를 8자 이상 넣고` is not `넣을 수 있고`.
+  - possibility/capability: `내려받을 수 있습니다` is not `내려받아집니다`; `점검합니다` is not `점검할 수 있습니다`.
+  - estimate: `~할 것으로 보입니다` is not `~해요` or `~하겠습니다`; if an estimate only props up praise, delete the whole claim instead of asserting it.
+  - plan: `연락드릴 예정입니다` is not the first-person promise `연락드릴게요`.
+  - restriction: `제한됩니다` is not `할 수 없습니다`.
+- Keep restrictors and scope words: `~인 경우에만`, `만`, `우선`, `까지`, `최대`, `이상/이하`. `승인된 경우에만` is not `승인된 뒤에`.
+- Keep every proper noun the source uses (organisation, product, place) at least once, even when cutting the sentence that held it; do not replace it with `저희`, `해당`, or nothing. Do not turn a thank-you into a commitment (`의견 감사합니다` is not `소중히 참고하겠습니다`).
 - Keep domain terms and cost or price labels, such as `도입 비용`.
 - Keep relations between facts; do not join independent facts into a cause, condition, or time relation.
 - Preserve UI paths, names, numbers, and dates verbatim as specified in step 2.
