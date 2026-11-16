@@ -14,7 +14,7 @@ evals/
   human/<id>.ko.md         human-written Korean; audit false-positive set
   loop.py                  run | judge | pick | report
   rounds/<n>/              one directory per round (committed)
-    meta.json              skill git SHA, models, date
+    meta.json              skill git SHA and content digest, dirty flag, models, date
     outputs/<engine>/<condition>/<id>.md
     judge.jsonl            one LLM verdict per output
     picks.jsonl            human blind picks
@@ -31,7 +31,7 @@ must_keep: ["3월 15일", "설정 > 알림", "환불은 7일 이내"]   # facts 
 ---
 ```
 
-Set size: 6 genres x 5 = 30 inputs (mix of generated and real), plus the human set.
+Set size: 6 genres x 7 = 42 generated inputs, plus the human set.
 
 ## Round
 
@@ -40,11 +40,15 @@ Set size: 6 genres x 5 = 30 inputs (mix of generated and real), plus the human s
    - `skill`: SKILL.md and both references are put in the prompt, so every engine
      gets the same instructions.
    - `plain`: "Rewrite this Korean text so it reads naturally" with no skill. This
-     is the baseline, and it is generated only in round 1 and reused afterwards.
+     is the baseline, generated in round 1 and reused afterwards. Pass
+     `run --round N --with-plain` to generate a fresh plain baseline in a later round.
+   Each `meta.json` keeps the current `skill_sha` and also records `skill_digest`,
+   the SHA-256 of `SKILL.md` followed by sorted `references/*.md` contents, and
+   `skill_dirty`, whether `git status --porcelain -- skills` was non-empty.
 2. `judge`: a fixed judge model scores each output and sees neither the engine
    nor the condition. It returns JSON:
-   `{invented: [..], dropped_facts: [..], register_ok, reader_action_ok, genre_fit 1-5, naturalness 1-5, residual_tells: [..], note, rule_violations: [{rule: "S7 or N8", quote: "exact output text"}]}`. The judge uses both sourced rule sets (S and N) at their genre-specific strength.
-   `dropped_facts` covers verifiable content only; removed praise, filler, greetings, closing courtesies, and vague expectations do not count. `invented` includes claims strengthened beyond the source, such as an estimate turned into a promise.
+    `{invented: [..], dropped_facts: [..], register_ok, reader_action_ok, genre_fit 1-5, naturalness 1-5, residual_tells: [..], note, rule_violations: [{rule: "S7 or N8", quote: "exact output text", introduced: true|false}]}`. The judge uses both sourced rule sets (S and N) at their genre-specific strength.
+   `dropped_facts` covers verifiable content only; removed praise, filler, greetings, closing courtesies, and vague expectations do not count. `invented` includes claims strengthened beyond the source, such as an estimate turned into a promise, and changes of modality or tense. Each sourced `rule_violations` entry includes `introduced`: true when the output created the problem or could fix it using only the source; false when the problem was inherited and fixing it would require facts the source does not provide. Missing `introduced` fields in older verdicts default to true.
    Deterministic checks run alongside it:
    - each `must_keep` string and each number in the source must appear in the
      output, ignoring thousands separators;
@@ -58,7 +62,15 @@ Set size: 6 genres x 5 = 30 inputs (mix of generated and real), plus the human s
    - mean naturalness and genre fit per engine and genre;
    - human win rate;
    - audit false-positive rate on `human/`;
-   - the delta against the previous round.
+   - the delta against the previous round, calculated only over inputs present in
+     both rounds' skill outputs for that engine (with the common-input count shown).
+     If the current round has its own `plain` outputs, `report` and `pick` use
+     those as the baseline; otherwise they use round 1's plain or the previous
+     round's skill output as appropriate.
+
+The sourced-rule section reports outputs with introduced violations and
+introduced per-rule counts as its primary measure. A secondary line includes
+inherited violations in the totals.
 
 ## Triage -> change -> re-run
 

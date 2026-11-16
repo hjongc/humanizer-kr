@@ -26,6 +26,8 @@ class EvalLoopTests(unittest.TestCase):
         self.assertIn("dropped_facts means verifiable content only", prompt)
         self.assertIn("Removed praise, filler, greetings, closing courtesies, and vague expectations are NOT dropped facts", prompt)
         self.assertIn("estimate turned into a promise", prompt)
+        self.assertIn("requirement -> permission", prompt)
+        self.assertIn('"introduced": true|false', prompt)
 
     def test_facts_accept_thousands_separator_variants(self) -> None:
         self.assertEqual(
@@ -61,8 +63,18 @@ class EvalLoopTests(unittest.TestCase):
                                       {"rule": "N8", "quote": "missing quote"}]
         self.assertEqual(
             loop.parse_verdict(json.dumps(verdict), output="책에 쓰여진 문장" )["rule_violations"],
-            [{"rule": "S8", "quote": "쓰여진 문장"}],
+            [{"rule": "S8", "quote": "쓰여진 문장", "introduced": True}],
         )
+        verdict["rule_violations"] = [{"rule": "N8", "quote": "위반", "introduced": False}]
+        self.assertFalse(loop.parse_verdict(json.dumps(verdict))["rule_violations"][0]["introduced"])
+
+    def test_all_inputs_parse_and_keep_facts_verbatim(self) -> None:
+        for path in sorted((ROOT / "evals" / "inputs").glob("*.ko.md")):
+            with self.subTest(path=path.name):
+                metadata, body = loop.parse_input(path)
+                self.assertIsInstance(metadata["must_keep"], list)
+                for fact in metadata["must_keep"]:
+                    self.assertIn(fact, body)
 
     def test_fake_end_to_end_and_round_delta(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -80,7 +92,10 @@ class EvalLoopTests(unittest.TestCase):
             judge_path = evals_dir / "rounds" / "1" / "judge.jsonl"
             judged_rows = [json.loads(line) for line in judge_path.read_text(encoding="utf-8").splitlines()]
             output_text = (evals_dir / "rounds" / "1" / "outputs" / "fake" / "skill" / "docs-1.ko.md").read_text(encoding="utf-8")
-            judged_rows[0]["verdict"]["rule_violations"] = [{"rule": "N8", "quote": output_text[:8]}]
+            judged_rows[0]["verdict"]["rule_violations"] = [
+                {"rule": "N8", "quote": output_text[:8], "introduced": False},
+                {"rule": "S8", "quote": output_text[8:16], "introduced": True},
+            ]
             judge_path.write_text(
                 "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in judged_rows),
                 encoding="utf-8",
@@ -89,14 +104,39 @@ class EvalLoopTests(unittest.TestCase):
                 self.assertEqual(loop.report(args), 0)
             report = (evals_dir / "rounds" / "1" / "report.md").read_text(encoding="utf-8")
             self.assertIn("Sourced rule violations", report)
-            self.assertIn("N8: 1", report)
+            self.assertIn("Outputs with any introduced sourced-rule violation: 1/2 (50.0%)", report)
+            self.assertIn("Including inherited: 1/2 outputs with violations", report)
+            self.assertIn("S8: 1", report)
+            self.assertIn("N8 1, S8 1", report)
+            meta = json.loads((evals_dir / "rounds" / "1" / "meta.json").read_text(encoding="utf-8"))
+            self.assertRegex(meta["skill_digest"], r"^[0-9a-f]{64}$")
+            self.assertIsInstance(meta["skill_dirty"], bool)
+            self.assertIn("skill_sha", meta)
+            (evals_dir / "inputs" / "proposal-6.ko.md").write_text(
+                '---\ngenre: proposal\nsource: generated\nmust_keep: []\n---\n새 입력입니다.',
+                encoding="utf-8",
+            )
             args.round = 2
+            args.with_plain = True
             self.assertEqual(loop.run(args), 0)
+            self.assertTrue((evals_dir / "rounds" / "2" / "outputs" / "fake" / "plain" / "docs-1.ko.md").exists())
             self.assertEqual(loop.judge(args), 0)
+            round_two_judge = evals_dir / "rounds" / "2" / "judge.jsonl"
+            round_two_rows = [json.loads(line) for line in round_two_judge.read_text(encoding="utf-8").splitlines()]
+            added_input = next(row for row in round_two_rows if "proposal-6" in row["output"] and row["condition"] == "skill")
+            added_input["verdict"].update({"naturalness": 5, "genre_fit": 1, "invented": ["새 사실"]})
+            round_two_judge.write_text(
+                "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in round_two_rows),
+                encoding="utf-8",
+            )
             with patch("builtins.print"):
                 self.assertEqual(loop.report(args), 0)
             report = (evals_dir / "rounds" / "2" / "report.md").read_text(encoding="utf-8")
             self.assertIn("Delta vs round 1", report)
+            self.assertIn("common inputs: 1", report)
+            self.assertIn("naturalness: 3.0 -> 3.0", report)
+            self.assertIn("genre_fit: 3.0 -> 3.0", report)
+            self.assertIn("hard_fail: 0.0 -> 0.0", report)
             self.assertIn("Judge errors: 0", report)
 
     def test_report_without_picks(self) -> None:
@@ -107,7 +147,7 @@ class EvalLoopTests(unittest.TestCase):
                 self.assertEqual(loop.report(args), 0)
             report = (evals_dir / "rounds" / "1" / "report.md").read_text(encoding="utf-8")
             self.assertIn("Human win rate: n/a (no picks)", report)
-            self.assertIn("Outputs with any sourced-rule violation: n/a", report)
+            self.assertIn("Outputs with any introduced sourced-rule violation: n/a", report)
             mocked_print.assert_called()
             picks_path = evals_dir / "rounds" / "1" / "picks.jsonl"
             picks_path.write_text('', encoding="utf-8")
@@ -146,6 +186,31 @@ class EvalLoopTests(unittest.TestCase):
                 loop.pick(args)
             self.assertEqual(json.loads(pick_path.read_text().splitlines()[0])["seed"], 12)
 
+    def test_pick_uses_current_round_plain_baseline_when_available(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir)
+            inputs = evals_dir / "inputs"
+            inputs.mkdir()
+            (evals_dir / "human").mkdir()
+            (inputs / "docs-1.ko.md").write_text(
+                '---\ngenre: docs\nsource: generated\nmust_keep: []\n---\n원문', encoding="utf-8"
+            )
+            for round_number, condition, content in (
+                (1, "skill", "previous skill"),
+                (2, "skill", "current skill"),
+                (2, "plain", "fresh plain"),
+            ):
+                output = evals_dir / "rounds" / str(round_number) / "outputs" / "fake" / condition / "docs-1.ko.md"
+                output.parent.mkdir(parents=True)
+                output.write_text(content, encoding="utf-8")
+            args = self.args(evals_dir, 2)
+            args.n = 1
+            with patch("builtins.input", return_value="q"), patch("builtins.print") as printed:
+                loop.pick(args)
+            shown = "\n".join(str(call.args[0]) for call in printed.call_args_list)
+            self.assertIn("fresh plain", shown)
+            self.assertNotIn("previous skill", shown)
+
     @staticmethod
     def args(evals_dir: Path, round_number: int):
         class Arguments:
@@ -163,6 +228,7 @@ class EvalLoopTests(unittest.TestCase):
         arguments.judge_model = "unused"
         arguments.seed = None
         arguments.n = 1
+        arguments.with_plain = False
         return arguments
 
 

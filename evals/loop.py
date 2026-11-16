@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import datetime
+import hashlib
 import importlib.util
 import json
 import os
@@ -137,18 +138,30 @@ def run(args: argparse.Namespace) -> int:
             finally:
                 if homes:
                     homes.cleanup()
-    if not (round_dir / "meta.json").exists():
+    meta_path = round_dir / "meta.json"
+    metadata = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+    if not metadata:
         result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, capture_output=True)
         sha = result.stdout.strip() if result.returncode == 0 else "unknown"
         metadata = {"skill_sha": sha or "unknown", "models": {"codex": args.codex_model,
                     "claude": args.claude_model}, "date": datetime.datetime.now(datetime.timezone.utc).isoformat()}
-        (round_dir / "meta.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    skill_files = [SKILL_PATH, *sorted(SKILL_PATH.parent.joinpath("references").glob("*.md"))]
+    digest = hashlib.sha256()
+    for path in skill_files:
+        digest.update(path.read_bytes())
+    dirty = subprocess.run(["git", "status", "--porcelain", "--", "skills"], cwd=ROOT,
+                           text=True, capture_output=True)
+    metadata.update({"skill_digest": digest.hexdigest(), "skill_dirty": bool(dirty.stdout.strip())})
+    meta_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     tasks = []
+    conditions = args.conditions.split(",")
+    if getattr(args, "with_plain", False) and "plain" not in conditions:
+        conditions.append("plain")
     for path in input_files(evals_dir):
         meta, body = parse_input(path)
         for engine in args.engines.split(","):
-            for condition in args.conditions.split(","):
-                if args.round > 1 and condition == "plain":
+            for condition in conditions:
+                if args.round > 1 and condition == "plain" and not getattr(args, "with_plain", False):
                     continue
                 destination = round_dir / "outputs" / engine / condition / f"{path.stem}.md"
                 if not (destination.exists() and destination.stat().st_size):
@@ -196,9 +209,12 @@ def parse_verdict(raw: str, output: str | None = None) -> dict[str, Any]:
     violations = verdict.get("rule_violations", [])
     if not isinstance(violations, list) or any(
         not isinstance(item, dict) or not isinstance(item.get("rule"), str)
-        or not isinstance(item.get("quote"), str) for item in violations
+        or not isinstance(item.get("quote"), str)
+        or ("introduced" in item and not isinstance(item["introduced"], bool)) for item in violations
     ):
         raise ValueError("judge rule_violations must be a list of rule/quote objects")
+    for violation in violations:
+        violation.setdefault("introduced", True)
     if output is not None:
         violations = [item for item in violations if item["quote"] in output]
     verdict["rule_violations"] = violations
@@ -215,7 +231,9 @@ def judge_prompt(genre: str, must_keep: list[str], source: str, output: str) -> 
     return (f"Evaluate this Korean rewrite. Genre: {genre}. must_keep: {json.dumps(must_keep, ensure_ascii=False)}\n\n"
             f"{rubric}\n{sourced_rules}\n{genre_matrix}\n"
             "For this genre, list each violation of a required or recommended sourced rule (S or N) in rule_violations "
-            "as {\"rule\": \"S7 or N8\", \"quote\": \"<exact text from OUTPUT>\"}. "
+            "as {\"rule\": \"S7 or N8\", \"quote\": \"<exact text from OUTPUT>\", \"introduced\": true|false}. "
+            "Set introduced=true when OUTPUT created the problem or could have fixed it using only content in SOURCE; "
+            "set false when it inherited a problem from SOURCE and fixing it would require facts SOURCE does not give. "
             "Use an empty list when there are none.\n"
             "Field definitions: genre_fit and naturalness are integers 1-5; "
             "1 = clearly machine-like or wrong genre, 3 = acceptable but bland, "
@@ -223,7 +241,10 @@ def judge_prompt(genre: str, must_keep: list[str], source: str, output: str) -> 
             "names, numbers, dates, times, paths, conditions, required actions, and distinct events. "
             "Removed praise, filler, greetings, closing courtesies, and vague expectations are NOT dropped facts. "
             "List invented content (facts/benefits/numbers not in source, including a claim made stronger "
-            "than the source such as an estimate turned into a promise) in invented. Return strict JSON with fields "
+            "than the source such as an estimate turned into a promise) in invented. Invented also includes changes "
+            "of modality or tense: requirement -> permission (\"입력하고\" -> \"입력할 수 있고\"), possibility -> "
+            "assertion (\"제공이 가능합니다\" -> \"제공합니다\"), estimate -> confirmed fact, restriction -> "
+            "full block, and completed -> upcoming. Return strict JSON with fields "
             "invented, dropped_facts, register_ok, reader_action_ok, genre_fit, naturalness, "
             "residual_tells, note, rule_violations. Do not identify the generator or condition.\nSOURCE:\n"
             f"{source}\nOUTPUT:\n{output}")
@@ -318,7 +339,9 @@ def pick(args: argparse.Namespace) -> int:
                 baseline = round_dir / "outputs" / engine / "plain" / name
             else:
                 current = round_dir / "outputs" / engine / "skill" / name
-                baseline = evals_dir / "rounds" / str(args.round - 1) / "outputs" / engine / "skill" / name
+                plain = round_dir / "outputs" / engine / "plain" / name
+                baseline = plain if plain.exists() else \
+                    evals_dir / "rounds" / str(args.round - 1) / "outputs" / engine / "skill" / name
             if current.exists() and baseline.exists():
                 candidates.append((path, metadata, engine, current, baseline))
     rng.shuffle(candidates)
@@ -372,27 +395,36 @@ def report(args: argparse.Namespace) -> int:
             count = sum(bool(row["verdict"].get(cause)) if cause in ("invented", "dropped_facts") else bool(row["checks"].get(cause)) for row in group_rows)
             lines.append(f"  - {cause}: {count}")
     lines.extend(["", "## Sourced rule violations", ""])
-    total_violating = sum(bool(row["verdict"].get("rule_violations", [])) for row in rows)
-    overall_rate = total_violating / len(rows) if rows else None
+    introduced_violating = sum(any(item.get("introduced", True) for item in row["verdict"].get("rule_violations", []))
+                               for row in rows)
+    overall_rate = introduced_violating / len(rows) if rows else None
     lines.append(
-        f"Outputs with any sourced-rule violation: {total_violating}/{len(rows)} ({overall_rate:.1%})"
-        if overall_rate is not None else "Outputs with any sourced-rule violation: n/a"
+        f"Outputs with any introduced sourced-rule violation: {introduced_violating}/{len(rows)} ({overall_rate:.1%})"
+        if overall_rate is not None else "Outputs with any introduced sourced-rule violation: n/a"
     )
+    total_violating = sum(bool(row["verdict"].get("rule_violations", [])) for row in rows)
+    lines.append(f"Including inherited: {total_violating}/{len(rows)} outputs with violations")
     for engine, condition in groups:
         group_rows = [row for row in rows if row["engine"] == engine and row["condition"] == condition]
-        affected = sum(bool(row["verdict"].get("rule_violations", [])) for row in group_rows)
+        affected = sum(any(item.get("introduced", True) for item in row["verdict"].get("rule_violations", []))
+                       for row in group_rows)
         rate = affected / len(group_rows) if group_rows else None
         lines.append(
-            f"- {engine} / {condition}: outputs with violations {affected}/{len(group_rows)} ({rate:.1%})"
+            f"- {engine} / {condition}: outputs with introduced violations {affected}/{len(group_rows)} ({rate:.1%})"
             if rate is not None else f"- {engine} / {condition}: outputs with violations n/a"
         )
-        counts: dict[str, int] = {}
+        introduced_counts: dict[str, int] = {}
+        total_counts: dict[str, int] = {}
         for row in group_rows:
             for violation in row["verdict"].get("rule_violations", []):
                 rule_id = violation["rule"]
-                counts[rule_id] = counts.get(rule_id, 0) + 1
-        for rule_id, count in sorted(counts.items()):
+                total_counts[rule_id] = total_counts.get(rule_id, 0) + 1
+                if violation.get("introduced", True):
+                    introduced_counts[rule_id] = introduced_counts.get(rule_id, 0) + 1
+        for rule_id, count in sorted(introduced_counts.items()):
             lines.append(f"  - {rule_id}: {count}")
+        lines.append(f"  - including inherited: {sum(total_counts.values())} violations; " +
+                     ", ".join(f"{rule_id} {count}" for rule_id, count in sorted(total_counts.items())))
     for field in ("naturalness", "genre_fit"):
         lines.extend(["", f"## Mean {field}", "", "| Genre | " + " | ".join(f"{e}/{c}" for e, c in groups) + " |", "|---|" + "---|" * len(groups)])
         for genre in sorted({row.get("genre", "") for row in valid_rows}):
@@ -429,8 +461,13 @@ def report(args: argparse.Namespace) -> int:
         if pick["winner"] not in ("a", "b"):
             continue
         current_path = f"outputs/{pick['engine']}/skill/{Path(pick['input']).stem}.md"
-        baseline_condition = "plain" if args.round == 1 else "skill"
-        baseline_round = round_dir if args.round == 1 else evals_dir / "rounds" / str(args.round - 1)
+        current_plain = round_dir / "outputs" / pick["engine"] / "plain" / f"{Path(pick['input']).stem}.md"
+        if args.round == 1 or current_plain.exists():
+            baseline_condition = "plain"
+            baseline_round = round_dir
+        else:
+            baseline_condition = "skill"
+            baseline_round = evals_dir / "rounds" / str(args.round - 1)
         baseline_path = f"outputs/{pick['engine']}/{baseline_condition}/{Path(pick['input']).stem}.md"
         if baseline_round != round_dir:
             continue
@@ -449,10 +486,15 @@ def report(args: argparse.Namespace) -> int:
         previous = load_jsonl(evals_dir / "rounds" / str(args.round - 1) / "judge.jsonl")
         if previous:
             lines.extend(["", f"## Delta vs round {args.round - 1}"])
-            for metric in ("hard_fail", "naturalness", "genre_fit"):
-                for engine in sorted({row["engine"] for row in rows + previous}):
-                    old = [row for row in previous if row["engine"] == engine and row["condition"] == "skill" and "error" not in row["verdict"]]
-                    new = [row for row in rows if row["engine"] == engine and row["condition"] == "skill" and "error" not in row["verdict"]]
+            for engine in sorted({row["engine"] for row in rows + previous}):
+                old_skill = [row for row in previous if row["engine"] == engine and row["condition"] == "skill"]
+                new_skill = [row for row in rows if row["engine"] == engine and row["condition"] == "skill"]
+                common = {Path(row["output"]).name for row in old_skill} & \
+                    {Path(row["output"]).name for row in new_skill}
+                lines.append(f"- {engine} (common inputs: {len(common)})")
+                for metric in ("hard_fail", "naturalness", "genre_fit"):
+                    old = [row for row in old_skill if Path(row["output"]).name in common and "error" not in row["verdict"]]
+                    new = [row for row in new_skill if Path(row["output"]).name in common and "error" not in row["verdict"]]
                     if metric == "hard_fail":
                         old_values = [bool(row["verdict"].get("invented") or row["verdict"].get("dropped_facts") or row["checks"]["missing_must_keep"] or row["checks"]["missing_numbers"]) for row in old]
                         new_values = [bool(row["verdict"].get("invented") or row["verdict"].get("dropped_facts") or row["checks"]["missing_must_keep"] or row["checks"]["missing_numbers"]) for row in new]
@@ -460,7 +502,7 @@ def report(args: argparse.Namespace) -> int:
                     else:
                         old_mean = sum(row["verdict"][metric] for row in old) / len(old) if old else None
                         new_mean = sum(row["verdict"][metric] for row in new) / len(new) if new else None
-                    lines.append(f"- {engine} {metric}: {old_mean if old_mean is not None else 'n/a'} -> {new_mean if new_mean is not None else 'n/a'}")
+                    lines.append(f"  - {metric}: {old_mean if old_mean is not None else 'n/a'} -> {new_mean if new_mean is not None else 'n/a'}")
     report_text = "\n".join(lines) + "\n"
     (round_dir / "report.md").write_text(report_text, encoding="utf-8")
     print(report_text, end="")
@@ -482,6 +524,8 @@ def main() -> None:
     run_parser.add_argument("--codex-model", default="gpt-6-luna")
     run_parser.add_argument("--claude-model", default="claude-sonnet-5-5")
     run_parser.add_argument("--engine-check", action="store_true")
+    run_parser.add_argument("--with-plain", action="store_true",
+                            help="also generate plain baseline outputs after round 1")
     run_parser.set_defaults(handler=run)
     judge_parser = commands.add_parser("judge")
     common(judge_parser)
