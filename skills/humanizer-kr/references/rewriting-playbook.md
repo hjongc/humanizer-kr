@@ -43,18 +43,18 @@ After: `사용자는 필요한 정보를 더 빨리 찾을 수 있습니다.`
 Problem: respect is expressed through ceremonial phrases such as
 `사용자님께서는`, `확인하시어`, or `참고 부탁드립니다`.
 
-Edit: keep politeness, but move the sentence toward the reader's next action.
+Edit: keep the source's meaning and level of detail while removing ceremonial padding.
 
 Before: `아래 내용을 확인하시어 이용에 참고 부탁드립니다.`
 After: `아래 내용을 확인해 주세요.`
 
-### Weak Reader Action
+### Vague Reader Action
 
-Problem: a notice or support reply says `필요한 조치` or `진행해 주세요`
-without naming the action.
+Problem: a notice or support reply uses a vague action phrase such as `필요한 조치`
+or `진행해 주세요`.
 
-Edit: name the action when it is present in the source. If not, keep the line
-short and add a missing-detail note outside the rewrite.
+Edit: keep the action as vague as the source. Remove the phrase only when it is
+empty filler; do not add or infer a more specific action.
 
 Before: `확인한 뒤 필요한 조치를 진행해 주세요.`
 After: `확인해 주세요.`
@@ -64,9 +64,9 @@ After: `확인해 주세요.`
 Problem: action disappears into `제공됩니다`, `저장됩니다`, `가능합니다`, or
 `처리됩니다`.
 
-Edit: name the actor when doing so is true and useful. In docs and support
-copy, `할 수 있습니다` is allowed when it describes a capability without
-repeating.
+Edit: name the actor only when the source identifies that actor. In docs and
+support copy, `할 수 있습니다` is allowed when it describes a capability
+without repeating.
 
 Before: `설정 변경이 가능하며 결과는 자동으로 저장됩니다.`
 After: `설정을 바꿀 수 있고 결과는 자동으로 저장됩니다.`
@@ -76,8 +76,9 @@ After: `설정을 바꿀 수 있고 결과는 자동으로 저장됩니다.`
 Problem: product docs describe history with `추가되었습니다`, `개선되었습니다`,
 or `변경되었습니다` when the reader needs the current behavior.
 
-Edit: write the current state. Keep change wording only in changelogs,
-migration guides, and release notes.
+Edit: keep or remove change wording according to the source and the task. Do not
+turn a change description into a claim about current behavior unless the source
+also states that behavior.
 
 Before: `자동 저장 기능이 추가되었습니다. 이제 입력한 내용은 자동으로 저장됩니다.`
 After: `자동 저장 기능이 추가되었습니다. 입력한 내용은 자동으로 저장됩니다.`
@@ -97,8 +98,8 @@ After: `알림은 설정에서 끌 수 있습니다.`
 Problem: headings, bold labels, or three-part lists make a short message feel
 like a chatbot answer.
 
-Edit: keep structure only when it helps scanning. Otherwise use one sentence,
-plain bullets, or a small table.
+Edit: remove formatting that is itself an AI tell, or keep the source's
+structure. Do not add headings, lists, emphasis, or other structure.
 
 Before: `- **속도:** 페이지 속도가 개선되었습니다.`
 After: `- 페이지 속도가 개선되었습니다.`

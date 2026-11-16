@@ -77,14 +77,13 @@ Use this guide as a source for rules N4–N6, N8, N12, and N13 below. Paraphrase
 
 ## Genre Strength Matrix
 
-| Genre | S-rules | N-rules | Voice profile conflict |
-|---|---|---|---|
-| public-notice | required | required | rule wins; N1 and N2 are never overridden by a profile |
-| docs | required | recommended | rule wins for S-rules; N1 and N2 are never overridden by a profile |
-| support-email, proposal | recommended | recommended; N1 required for support-email | profile wins, except S8; N1 and N2 are never overridden by a profile |
-| product-copy, social-post | S8 and S11 only; the rest advisory | N8 and N10 only; the rest advisory | profile wins, except S8; N1 and N2 are never overridden by a profile |
+**Default set — all genres:** S7, S8, S9, S10, S11, N8, and N9. These rules target translationese and noun-heavy, passive phrasing typical of machine text. N1 also applies by default to public notices and support emails.
 
-These rules were written for public language and statutes; applying all of them to casual genres makes text stiff, which is why strength varies.
+**Opt-in set — only when the user asks for public-language or plain-language correctness:** S1–S6, S12, S13, N2–N7, and N10–N13. For public notices under this opt-in, these rules are required.
+
+A voice profile never overrides N1, N2, or S8.
+
+These rules were written for public language and statutes; applying all of them to casual genres makes text stiff, which is why strength varies. Applying them by default made outputs restructure and invent in our evals.
 
 ## Vocabulary and Usage Sources
 

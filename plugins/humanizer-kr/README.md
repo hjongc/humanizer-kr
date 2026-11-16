@@ -2,7 +2,7 @@
 
 [English](README.en.md) | 한국어
 
-AI가 쓴 것처럼 보이는 한국어 초안을 문맥과 독자에 맞게 다시 다듬는 CodexㆍClaude Code용 글쓰기 스킬입니다.
+AI 문체 신호와 번역투를 걷어내 한국어 글이 사람이 쓴 것처럼 읽히게 하되, 원문의 의미와 사실, 작성자가 담은 정보량을 지키는 CodexㆍClaude Code용 글쓰기 스킬입니다.
 
 Humanizer KR는 번역투, 과한 홍보 문구, 명사화, 수동 표현, 어색한 높임, 챗봇식 전개를 찾아 줄입니다. 사실, 의도, 문단 흐름, 말투는 지키고 표현만 바꾸는 것을 원칙으로 합니다.
 
@@ -87,7 +87,7 @@ Use $humanizer-kr to make this Korean draft sound natural:
 [고칠 한국어 초안]
 ```
 
-더 나은 최종문이 필요하면 첫 출력 뒤에 한 번 더 검토해 달라고 요청합니다.
+남은 AI 문체 신호를 한 번 더 걷어내고 싶다면 첫 출력 뒤에 재검토를 요청합니다. 이때도 내용을 추가하지 않습니다.
 
 ```text
 Use $humanizer-kr. Rewrite this, then review the result once and improve it again:
@@ -103,7 +103,7 @@ Use $humanizer-kr to review this Korean copy for AI-like phrasing:
 
 ### 파일 품질 게이트
 
-로컬 파일을 배포 전에 점검하려면 audit script를 씁니다. 기본 점검은 AI 문체 신호를 찾고, `--quality`는 안전하지만 밋밋한 문장, 약한 독자 행동, 장르와 맞지 않는 표현을 다시 봅니다.
+로컬 파일에서 AI 문체 신호를 살펴보려면 audit script를 씁니다. 기본 점검과 `--quality` 결과는 검토 신호이며, 원문에 없는 행동이나 구체성을 추가하는 근거로 삼지 않습니다.
 
 ```bash
 python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre product-copy --fail-on-findings examples/product-copy.after.ko.md

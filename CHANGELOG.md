@@ -2,6 +2,10 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## Unreleased
+
+- Re-aimed rewrite guidance at removing AI-writing tells and translationese while preserving source meaning, facts, and level of detail.
+
 ## 0.1.10 - 2026-07-02
 
 - Removed README overview images from the public Korean and English docs.

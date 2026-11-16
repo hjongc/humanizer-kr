@@ -2,7 +2,7 @@
 
 English | [한국어](README.md)
 
-Humanizer KR is a Korean-specialized writing skill for Codex and Claude Code. It rewrites AI-sounding Korean into natural, context-aware Korean while preserving the user's facts, intent, and register.
+Humanizer KR is a Korean writing skill for Codex and Claude Code that removes AI-writing tells and translationese so text reads as written by a person, while preserving its meaning, facts, and the writer's level of detail.
 
 It is designed for product copy, public notices, emails, documentation, proposals, posts, and other Korean drafts where stiff translationese, inflated claims, or chatbot-like structure make the writing feel less human.
 
@@ -150,7 +150,7 @@ Use $humanizer-kr to review this Korean copy for AI-like phrasing:
 
 ### File audit gate
 
-Use the audit helper before publishing Korean files. The basic audit flags AI-writing tells; `--quality` adds a second pass for safe-but-flat wording, weak reader actions, and genre mismatch.
+Use the audit helper to review AI-writing tells in Korean files. The basic audit and `--quality` results are review signals, not grounds for adding actions or specificity that the source does not contain.
 
 ```bash
 python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre product-copy --fail-on-findings examples/product-copy.after.ko.md

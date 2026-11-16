@@ -1,11 +1,11 @@
 ---
 name: humanizer-kr
-description: Rewrite, edit, or review Korean text so it sounds natural, human, and source-grounded rather than AI-generated or translation-like. Use for Korean product copy, posts, emails, public notices, documentation, essays, proposals, scripts, and other drafts that need Korean-specific register control, plain-language discipline, removal of AI-writing tells, or voice matching from a user sample or saved voice profile.
+description: Remove AI-writing tells and translationese from Korean text so it reads as written by a person while keeping its meaning, facts, and the writer's level of detail. Use for Korean product copy, posts, emails, public notices, documentation, essays, proposals, scripts, and other drafts that need genre-aware register control, voice matching, or removal of AI-writing tells.
 ---
 
 # Humanizer KR
 
-Use this skill to make Korean writing sound like it was written by a person who understands the audience, not by a chatbot translating an English outline.
+Use this skill to remove AI-writing tells and translationese so Korean text reads as written by a person, while keeping its meaning, facts, and the writer's own level of detail.
 
 Do not help users hide plagiarism, impersonate a real person's authorship, or bypass academic or hiring integrity checks. It is fine to improve clarity, register, voice, and readability when the user owns or is allowed to edit the text.
 
@@ -21,7 +21,7 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
 5. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
 6. Check meaning in both directions: match every source claim to the rewrite with the same tense, degree, and terms; then match every rewrite claim to the source. Fix any mismatch or unsupported claim before continuing.
 7. Run the Korean audit pass before returning the final answer.
-8. Run one naturalness pass: check whether the rewrite still feels flat, generic, vague, or mismatched to the genre; check it against sourced rules (S and N) at the strength required for the genre.
+8. Run one naturalness pass: check whether AI-writing tells or translationese remain. Check the default sourced rules S7, S8, S9, S10, S11, N8, and N9 (and N1 when the text addresses the reader with instructions); apply other S and N rules only when the user asks for public-language or plain-language correctness.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
 
@@ -29,9 +29,8 @@ When factual claims are weak, do not invent supporting detail. Either keep the c
 
 Use this after removing obvious AI-writing tells. A rewrite can be clean and still feel unnatural.
 
-- Genre fit: product copy should be sharper than documentation; support email should tell the reader what to do next; public notices should separate issue, affected reader, action, and timing when those facts exist.
-- Reader action: if the reader needs to do something, name the action. Avoid vague endings such as `필요한 조치를 진행해 주세요` unless the source genuinely withholds the action.
-- Concrete subject: prefer the actual actor or object over generic `이 도구`, `이 서비스`, `본 기능` when the source gives enough context.
+- Do not upgrade the text: do not add reader actions, headings, lists, structure, emphasis, or persuasive framing the source lacks. Keep the source's level of detail, and keep a vague statement vague unless the vagueness itself is an AI tell (empty praise, filler closings), in which case delete it rather than make it specific.
+- Concrete subject: prefer the actual actor or object over generic `이 도구`, `이 서비스`, `본 기능` only when the source names that actor or object.
 - Rhythm: vary sentence length. Do not make every sentence land with the same `합니다` rhythm unless the genre requires formal uniformity.
 - Warmth: remove ceremonial padding, but do not make support or public-facing text cold. Keep enough respect for the reader relationship.
 - Claim control: do not add benefits, examples, numbers, deadlines, app names, institutions, or causal claims that the source did not provide.
@@ -46,7 +45,7 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
 - Preserve UI paths, names, numbers, and dates verbatim as specified in step 2.
 - Use no foreign word that the source does not contain.
 
-When the first rewrite is safe but bland, improve once more. Prefer a smaller, more specific sentence over a broader sentence with polished wording.
+When the first rewrite is safe but still has AI-writing tells, make one more pass only to remove those tells; do not add content.
 
 ## Failure and Uncertainty Policy
 
@@ -161,7 +160,7 @@ Read `references/korean-source-rules.md` when:
 
 Do not cite these sources mechanically in ordinary rewrites. Cite them only when the user asks for rationale, source basis, or style rules.
 
-Sourced rules (S and N) and their source pages are in `references/korean-source-rules.md`. Apply them at the strength set by its genre matrix; cite the rule ID and source only when the user asks for rationale.
+Sourced rules (S and N) and their source pages are in `references/korean-source-rules.md`. By default, apply S7, S8, S9, S10, S11, N8, and N9 (and N1 when the text addresses the reader with instructions). Apply other S and N rules only when the user asks for public-language or plain-language correctness; cite the rule ID and source only when the user asks for rationale.
 
 ## Optional Audit Script
 
@@ -179,7 +178,7 @@ For a second quality pass, run:
 python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre product-copy <file>
 ```
 
-Use `--quality` to look for bland-but-clean output, weak reader actions, leftover availability phrasing, and genre mismatch.
+Use `--quality` to review bland-but-clean output, leftover availability phrasing, and genre-related signals; do not add actions or specificity that the source does not contain.
 
 For a release-style gate over the public examples, run:
 
