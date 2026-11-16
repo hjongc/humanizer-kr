@@ -7,6 +7,7 @@ import importlib.util
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -50,6 +51,43 @@ BLOCKED_AFTER_PHRASES = [
 
 
 class AuditKoreanTextTests(unittest.TestCase):
+    def test_meaning_check_preserves_numbers_paths_quotes_and_modality(self) -> None:
+        source = "1,200건은 설정 > 알림에서 “켜기”를 선택해야 합니다. 할 것으로 보입니다. 경우에만 적용됩니다."
+        rewrite = "1200건은 설정 > 알림에서 “켜기”를 선택해야 합니다. 할 것으로 보입니다. 경우에만 적용됩니다."
+        self.assertEqual(module.compare_meaning(source, rewrite), [])
+        self.assertEqual(module.compare_meaning("설정 > 알림 > 소리에서 끕니다.", "설정 > 알림 > 소리를 끕니다."), [])
+
+    def test_meaning_check_reports_missing_path_and_modality(self) -> None:
+        cases = (
+            ("설정 > 알림에서 확인합니다.", "알림 설정에서 확인합니다.", "설정 > 알림"),
+            ("안내를 따라야 합니다.", "안내를 따릅니다.", "obligation: 따라야 합니다"),
+            ("변경할 것으로 보입니다.", "변경합니다.", "estimate: 것으로 보입니다"),
+            ("신청한 경우에만 사용할 수 있습니다.", "신청한 뒤 사용할 수 있습니다.", "restrictor: 경우에만"),
+        )
+        for source, rewrite, expected in cases:
+            with self.subTest(expected=expected):
+                findings = module.compare_meaning(source, rewrite)
+                self.assertTrue(any(item["code"] == "meaning-check" and expected in item["match"] for item in findings))
+                self.assertTrue(all(item["line"] == 1 for item in findings))
+
+    def test_meaning_check_reports_each_missing_number(self) -> None:
+        findings = module.compare_meaning("최대 1,200건", "최대 건")
+        self.assertEqual([item["match"] for item in findings], ["1,200"])
+
+    def test_source_cli_fail_gate_includes_meaning_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.txt"
+            source.write_text("최대 12회 신청할 수 있습니다.", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--source", str(source), "--fail-on-findings"],
+                input="신청할 수 있습니다.",
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("[meaning-check] line 1: 12", result.stdout)
+
     def test_public_before_after_pairs_do_not_invent_specifics(self) -> None:
         # This lexical guard catches new specifics, but cannot judge semantic equivalence.
         pair_pattern = re.compile(r"^Before: `(.+)`\nAfter: `(.+)`$", re.MULTILINE)

@@ -20,7 +20,7 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
    - concise internal note: plain declarative Korean with minimal honorific padding
 5. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
 6. Check meaning in both directions: match every source claim to the rewrite with the same tense, degree, and terms; then match every rewrite claim to the source. Fix any mismatch or unsupported claim before continuing.
-7. Run the Korean audit pass before returning the final answer.
+7. Run the Korean audit pass before returning the final answer. When the source is available as a file, run the audit script with `--source <source-file>` and review every meaning-check finding: restore the item when the drop changes meaning; a dropped hedge that only propped up praise can stay dropped.
 8. Run one naturalness pass: check whether AI-writing tells or translationese remain. Check the default sourced rules S7, S8, S9, S10, S11, N8, and N9 (and N1 when the text addresses the reader with instructions); apply other S and N rules only when the user asks for public-language or plain-language correctness.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
@@ -176,6 +176,12 @@ For file-based review, run:
 
 ```bash
 python3 skills/humanizer-kr/scripts/audit_korean_text.py <file>
+```
+
+When the source is available as a file, compare it with the rewrite:
+
+```bash
+python3 skills/humanizer-kr/scripts/audit_korean_text.py --source <source-file> <rewrite-file>
 ```
 
 Use the script as a smoke test, not as the final judge. It flags patterns that deserve attention; it does not prove a text is AI-generated.

@@ -210,6 +210,57 @@ def line_number(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
 
 
+def compare_meaning(source: str, rewrite: str) -> list[dict[str, object]]:
+    """Flag source details or modality markers that disappear in a rewrite."""
+    findings: list[dict[str, object]] = []
+
+    def add_finding(match: re.Match[str], detail: str) -> None:
+        findings.append(
+            {
+                "code": "meaning-check",
+                "label": "source-to-rewrite meaning check",
+                "line": line_number(source, match.start()),
+                "match": detail,
+                "advice": "Check whether this drop changes meaning.",
+            }
+        )
+
+    numbers = re.compile(r"\d[\d,]*(?:\.\d+)?")
+    rewrite_numbers = [match.group().replace(",", "") for match in numbers.finditer(rewrite)]
+    for match in numbers.finditer(source):
+        number = match.group().replace(",", "")
+        if number in rewrite_numbers:
+            rewrite_numbers.remove(number)
+        else:
+            add_finding(match, match.group())
+
+    preserved_patterns = (
+        re.compile(r"[\w가-힣-]+(?:\s*>\s*[\w가-힣-]+)+"),
+        re.compile(r"“[^”]*”|\"[^\"]*\"|「[^」]*」|`[^`]*`"),
+    )
+    for pattern in preserved_patterns:
+        for match in pattern.finditer(source):
+            # A particle on the last path segment (`소리에서` vs `소리를`) is grammar, not part of the path.
+            kept = re.sub(r"(?:에서|으로|로|을|를|이|가|은|는|의|에)$", "", match.group())
+            if kept not in rewrite:
+                add_finding(match, match.group())
+
+    modality_classes = {
+        "obligation": re.compile(r"해야 (?:합니다|하며|하고|한다|해요)|셔야|하여야|[가-힣]+야 합니다"),
+        "possibility": re.compile(r"수 있|가능합니다|가능하며|가능해요"),
+        "estimate": re.compile(r"것으로 (?:보입니다|보이며|예상|추정)|추정됩니다|예상됩니다|듯합니다"),
+        "plan": re.compile(r"예정(?:입니다|이며|이에요)"),
+        "restrictor": re.compile(r"경우에만|에 한해|에 한하여|우선 |까지만|이내"),
+    }
+    for class_name, pattern in modality_classes.items():
+        source_matches = list(pattern.finditer(source))
+        rewrite_count = len(pattern.findall(rewrite))
+        for match in source_matches[rewrite_count:]:
+            add_finding(match, f"{class_name}: {match.group()}")
+
+    return findings
+
+
 def audit(text: str) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
     for rule in RULES:
@@ -378,6 +429,7 @@ def main() -> int:
     parser.add_argument("--genre", choices=["product-copy", "public-notice", "support-email", "proposal", "docs", "social-post", "general"], help="Genre hint for --quality review.")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     parser.add_argument("--quality", action="store_true", help="Also review whether clean output is still flat, vague, or genre-mismatched.")
+    parser.add_argument("--source", help="UTF-8 source file to compare for meaning drift.")
     parser.add_argument("--fail-on-findings", action="store_true", help="Exit with status 1 when any audit or quality finding is reported.")
     parser.add_argument("--after-examples", action="store_true", help="Audit every public examples/*.after.ko.md file with its genre quality rules.")
     args = parser.parse_args()
@@ -408,6 +460,8 @@ def main() -> int:
 
     text = read_input(args.path)
     findings = audit(text)
+    if args.source:
+        findings.extend(compare_meaning(Path(args.source).read_text(encoding="utf-8"), text))
     quality_findings = quality_review(text, args.genre) if args.quality else []
 
     if args.json:
