@@ -43,6 +43,9 @@ class EvalLoopTests(unittest.TestCase):
             args = self.args(evals_dir, 1)
             args.conditions = "skill"
             args.voice = str(profile)
+            holdout = Path(temporary_dir) / "held-out.md"
+            holdout.write_text("HOLDOUT_PRIVATE: 오늘은 여기까지 쓸게요.", encoding="utf-8")
+            args.holdout = str(holdout)
             args.samples = 2
             self.assertEqual(loop.run(args), 0)
 
@@ -75,6 +78,95 @@ class EvalLoopTests(unittest.TestCase):
             similarity = difflib.SequenceMatcher(None, source, fake_output).ratio()
             length_ratio = len(fake_output) / len(source)
             self.assertIn(f"| fake/voice | {similarity:.4f} | {length_ratio:.4f} |", report)
+
+    def test_voice_pair_uses_evidence_in_both_orders_and_keeps_it_private(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "inputs").mkdir()
+            (root / "inputs/docs-1.ko.md").write_text(
+                '---\ngenre: docs\nmust_keep: []\n---\n신청을 확인합니다.', encoding="utf-8")
+            profile = root / "profile.md"
+            profile.write_text("PRIVATE_PROFILE: 짧은 해요체", encoding="utf-8")
+            holdout = root / "heldout.md"
+            holdout.write_text("PRIVATE_HOLDOUT: 오늘은 여기까지 할게요.", encoding="utf-8")
+            args = self.args(root, 1)
+            args.voice, args.holdout = str(profile), str(holdout)
+            args.samples, args.all_samples = 2, True
+            self.assertEqual(loop.run(args), 0)
+            output_root = root / "rounds/1/outputs/fake"
+            for condition, text in (("skill", "신청을 확인합니다."), ("voice", "신청을 확인해요.")):
+                for path in (output_root / condition).glob("*.md"):
+                    path.write_text(text, encoding="utf-8")
+            # No voice comparison is reported when no evaluation evidence is supplied.
+            args.voice, args.holdout = None, None
+            self.assertEqual(loop.pair(args), 0)
+            pair_path = root / "rounds/1/pair.jsonl"
+            self.assertNotIn("voice_vs_skill", pair_path.read_text())
+            args.voice, args.holdout = str(profile), str(holdout)
+            args.judge_engine = "claude"
+            with patch.object(loop, "invoke", side_effect=[
+                '{"winner":"A","reason":"match"}', '{"winner":"B","reason":"match"}',
+                '{"winner":"A","reason":"match"}', '{"winner":"B","reason":"match"}',
+            ]) as invoked:
+                self.assertEqual(loop.pair(args), 0)
+            self.assertEqual(invoked.call_count, 4)
+            for call in invoked.call_args_list:
+                prompt = call.args[2]
+                self.assertIn(profile.read_text(), prompt)
+                self.assertIn(holdout.read_text(), prompt)
+                self.assertIn("not generic human-likeness", prompt)
+            self.assertIn("A:\n신청을 확인해요.", invoked.call_args_list[0].args[2])
+            self.assertIn("A:\n신청을 확인합니다.", invoked.call_args_list[1].args[2])
+            rows = loop.load_jsonl(pair_path)
+            voice_rows = [row for row in rows if row["comparison"] == "voice_vs_skill"]
+            self.assertEqual([row["result"] for row in voice_rows], ["win", "win"])
+            self.assertEqual({row["sample"] for row in voice_rows}, {1, 2})
+            self.assertTrue(all(row["criterion"] == "voice_fidelity" for row in voice_rows))
+            self.assertNotIn("PRIVATE_", pair_path.read_text())
+            self.assertNotIn(str(holdout), pair_path.read_text())
+            with patch.object(loop, "invoke", side_effect=AssertionError("already evaluated")):
+                self.assertEqual(loop.pair(args), 0)
+            holdout.write_text("Changed evidence", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "evidence changed"):
+                loop.pair(args)
+            profile.write_text("Changed profile", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "differs from generation"):
+                loop.pair(args)
+            with self.assertRaisesRegex(ValueError, "profile changed for existing outputs"):
+                loop.run(args)
+
+    def test_voice_context_requires_both_files(self) -> None:
+        args = self.args(Path("unused"), 1)
+        args.holdout = "heldout.md"
+        with self.assertRaisesRegex(ValueError, "both --voice and --holdout"):
+            loop.voice_context(args, Path("unused"))
+
+    def test_voice_pick_is_blind_and_separate_from_rewrite_pick(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "inputs").mkdir()
+            (root / "inputs/docs-1.ko.md").write_text(
+                '---\ngenre: docs\nmust_keep: []\n---\n신청을 확인합니다.', encoding="utf-8")
+            for condition in ("plain", "skill", "voice"):
+                path = root / "rounds/1/outputs/fake" / condition / "docs-1.ko.md"
+                path.parent.mkdir(parents=True)
+                path.write_text("신청을 확인해요." if condition == "voice" else "신청을 확인합니다.", encoding="utf-8")
+            args = self.args(root, 1)
+            with patch("builtins.input", return_value="a"), patch("builtins.print"):
+                self.assertEqual(loop.pick(args), 0)
+            args.comparison = "voice"
+            with patch("builtins.input", return_value="b"), patch("builtins.print") as printed:
+                self.assertEqual(loop.pick(args), 0)
+            shown = "\n".join(str(call.args[0]) for call in printed.call_args_list)
+            self.assertIn("신청을 확인해요.", shown)
+            self.assertIn("your own writing", shown)
+            self.assertNotIn("current", shown)
+            self.assertNotIn("baseline", shown)
+            rows = loop.load_jsonl(root / "rounds/1/picks.jsonl")
+            self.assertEqual({row["comparison"] for row in rows}, {"rewrite", "voice"})
+            with patch("builtins.print"):
+                self.assertEqual(loop.report(args), 0)
+            self.assertIn("Human voice preference rate (current):", (root / "rounds/1/report.md").read_text())
 
     def test_run_rejects_missing_voice_file(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -241,7 +333,9 @@ class EvalLoopTests(unittest.TestCase):
             judge_path = evals_dir / "rounds" / "1" / "judge.jsonl"
             rows = [json.loads(line) for line in judge_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sorted(row["sample"] for row in rows), [1, 2, 3])
-            rows[1]["checks"]["missing_numbers"] = ["7"]
+            failed_sample = next(row for row in rows if row["sample"] == 2)
+            failed_sample["checks"]["missing_numbers"] = ["7"]
+            rows.reverse()  # Report results must not depend on concurrent completion order.
             judge_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
             with patch("builtins.print"):
                 self.assertEqual(loop.report(args), 0)

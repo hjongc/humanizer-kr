@@ -7,7 +7,7 @@ keeps the user's facts and reader relationship intact.
 ## Operating Rules
 
 - Preserve facts, numbers, names, quotes, legal wording, and source claims.
-- Remove only the pattern that weakens the sentence. Do not rewrite unrelated
+- In Clean up mode, remove only the pattern that weakens the sentence. Do not rewrite unrelated
   parts for polish.
 - Keep the genre. A support reply should stay helpful; a notice should stay
   direct; documentation should stay scannable.
@@ -100,7 +100,7 @@ Problem: headings, bold labels, or three-part lists make a short message feel
 like a chatbot answer.
 
 Edit: remove formatting that is itself an AI tell, or keep the source's
-structure. Do not add headings, lists, emphasis, or other structure.
+structure. In Clean up mode, do not add headings, lists, emphasis, or other structure. Voice tasks may rearrange structure to match evidenced paragraph habits without adding claims.
 
 Before: `- **속도:** 페이지 속도가 개선되었습니다.`
 After: `- 페이지 속도가 개선되었습니다.`
