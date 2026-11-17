@@ -39,6 +39,7 @@ Run the same inputs with the skill or a plain rewrite prompt:
 ```bash
 python3 evals/loop.py run --round 4 --engines codex,claude
 python3 evals/loop.py run --round 4 --engines codex --samples 3
+python3 evals/loop.py run --round 4 --engines codex --voice ~/.humanizer-kr/voice.md --conditions skill --samples 3
 python3 evals/loop.py judge --round 4 --judge-engine claude
 python3 evals/loop.py pair --round 4 --judge-engine claude
 python3 evals/loop.py pair --round 4 --judge-engine claude --all-samples
@@ -50,6 +51,15 @@ python3 evals/loop.py report --round 4 --human ~/.humanizer-kr/samples
 baseline is normally created in round 1 and reused in later rounds; pass
 `run --round N --with-plain` to generate a fresh one. Each round's `meta.json`
 records the skill revision, content digest, dirty flag, models, and date.
+The `skill` prompt explicitly says that no saved voice profile applies and that
+the generator must not look for or read `voice.md`, so an installed home
+profile cannot silently affect this control condition. Pass `--voice PATH` to
+measure a saved profile as a separate `voice` condition; the file must exist,
+is read when the run starts, and `voice` is automatically added to the selected
+conditions. For example, `--conditions skill --samples 3` produces both skill
+and voice outputs for three samples. The profile is included only in the voice
+prompt and is never copied into the round directory or repository; `meta.json`
+stores only its SHA-256 `voice_digest`, not its path or content.
 Generator calls run in isolated temporary working directories. `--samples K`
 generates K resumable outputs for each selected input, engine, and condition
 (default 1). Sample 1 keeps `<input-stem>.md`; samples 2 and up use
@@ -68,7 +78,8 @@ swapped. A win or loss requires agreement across both orders; disagreement is
 a tie. Outputs that fail the round's factual hard-fail checks forfeit without a
 model call. Each comparison costs two model calls. `--judge-engine fake`
 produces deterministic ties for offline tests. Pair records are resumable by
-input, engine, comparison, and sample.
+input, engine, comparison, and sample. When sample-1 skill and voice outputs
+both exist, it also records `voice_vs_skill`.
 
 The judge returns these required fields:
 
@@ -107,7 +118,8 @@ the report. It never copies sample text into round artifacts.
 ## Report order
 
 Reports show factual hard-fail rate first, then human-likeness and AI-tell
-summaries, pairwise outcomes, objective-stat distances from the human mean,
+summaries, mean edit amount (character similarity to SOURCE and output/source
+length ratio), pairwise outcomes, objective-stat distances from the human mean,
 and secondary sourced-rule, audit, and optional human-pick results. If no human
 reference directory exists, the report says `human reference: none` and prints
 no human-distance values. Objective stats can be read from `stats.json` or

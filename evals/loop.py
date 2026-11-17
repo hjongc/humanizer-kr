@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import datetime
+import difflib
 import hashlib
 import importlib.util
 import json
@@ -87,16 +88,23 @@ def wilson_interval(successes: int, total: int) -> tuple[float, float]:
     return (max(0.0, center - margin), min(1.0, center + margin))
 
 
-def make_prompt(body: str, condition: str) -> str:
+def make_prompt(body: str, condition: str, voice_profile: str | None = None) -> str:
     """Build the isolated generator prompt for one condition."""
     if condition == "plain":
         return "한국어 문장을 자연스럽게 다듬어 주세요.\n\n" + body
     skill_dir = SKILL_PATH.parent
     references = sorted((skill_dir / "references").glob("*.md"))
-    return "\n\n".join(
-        [SKILL_PATH.read_text(encoding="utf-8"), *(path.read_text(encoding="utf-8") for path in references), body,
-         "return only the final rewrite"]
-    )
+    skill_text = SKILL_PATH.read_text(encoding="utf-8")
+    prompt_parts = [skill_text]
+    if condition == "skill":
+        prompt_parts.append("No saved voice profile applies to this task; do not look for or read voice.md.")
+    prompt_parts.extend(path.read_text(encoding="utf-8") for path in references)
+    if condition == "voice":
+        if voice_profile is None:
+            raise ValueError("voice condition requires --voice PATH")
+        prompt_parts.append("Saved voice profile (voice.md) for this writer:\n\n" + voice_profile)
+    prompt_parts.extend((body, "return only the final rewrite"))
+    return "\n\n".join(prompt_parts)
 
 
 def invoke(engine: str, model: str, text: str, temp_cwd: Path, codex_home: Path | None = None,
@@ -142,6 +150,19 @@ def run(args: argparse.Namespace) -> int:
     """Generate resumable output files for all selected input combinations."""
     if getattr(args, "samples", 1) < 1:
         raise ValueError("--samples must be at least 1")
+    voice_path = Path(args.voice).expanduser() if getattr(args, "voice", None) else None
+    voice_profile = None
+    voice_bytes = None
+    if voice_path:
+        if not voice_path.is_file():
+            raise ValueError(f"voice profile file does not exist: {voice_path}")
+        voice_bytes = voice_path.read_bytes()
+        voice_profile = voice_bytes.decode("utf-8")
+    conditions = args.conditions.split(",")
+    if "voice" in conditions and voice_profile is None:
+        raise ValueError("voice condition requires --voice PATH")
+    if voice_profile is not None and "voice" not in conditions:
+        conditions.append("voice")
     evals_dir = Path(args.evals_dir)
     round_dir = evals_dir / "rounds" / str(args.round)
     round_dir.mkdir(parents=True, exist_ok=True)
@@ -174,9 +195,10 @@ def run(args: argparse.Namespace) -> int:
     dirty = subprocess.run(["git", "status", "--porcelain", "--", "skills"], cwd=ROOT,
                            text=True, capture_output=True)
     metadata.update({"skill_digest": digest.hexdigest(), "skill_dirty": bool(dirty.stdout.strip())})
+    if voice_bytes is not None:
+        metadata["voice_digest"] = hashlib.sha256(voice_bytes).hexdigest()
     meta_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     tasks = []
-    conditions = args.conditions.split(",")
     if getattr(args, "with_plain", False) and "plain" not in conditions:
         conditions.append("plain")
     for path in input_files(evals_dir):
@@ -196,7 +218,8 @@ def run(args: argparse.Namespace) -> int:
         _, body, engine, condition, destination = task
         model = {"codex": args.codex_model, "claude": args.claude_model, "fake": "fake"}[engine]
         with tempfile.TemporaryDirectory(prefix="humanizer-run-") as cwd:
-            output = invoke(engine, model, make_prompt(body, condition), Path(cwd), Path(homes.name) if homes else None)
+            output = invoke(engine, model, make_prompt(body, condition, voice_profile), Path(cwd),
+                            Path(homes.name) if homes else None)
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(output, encoding="utf-8")
     try:
@@ -397,16 +420,21 @@ def pair(args: argparse.Namespace) -> int:
         filename = f"{input_stem}.md"
         engine = skill_path.parts[-3]
         plain_path = round_dir / "outputs" / engine / "plain" / filename
+        voice_path = round_dir / "outputs" / engine / "voice" / filename
         comparisons = [("skill_vs_plain", plain_path, plain_path.read_text(encoding="utf-8") if plain_path.exists() else None),
                        ("skill_vs_source", None, source)]
+        if sample == 1 and voice_path.exists():
+            comparisons.append(("voice_vs_skill", skill_path, skill_path.read_text(encoding="utf-8")))
         for comparison, other_path, other_text in comparisons:
             key = (input_path.name, engine, comparison, sample)
             if key in existing or other_text is None:
                 continue
             skill_key = str(skill_path.relative_to(round_dir))
             other_key = str(other_path.relative_to(round_dir)) if other_path else None
-            pending.append((input_path.name, engine, comparison, sample, skill_path.read_text(encoding="utf-8"),
-                            other_text, judged.get(skill_key), judged.get(other_key)))
+            first_text = voice_path.read_text(encoding="utf-8") if comparison == "voice_vs_skill" else skill_path.read_text(encoding="utf-8")
+            first_key = str(voice_path.relative_to(round_dir)) if comparison == "voice_vs_skill" else skill_key
+            pending.append((input_path.name, engine, comparison, sample, first_text,
+                            other_text, judged.get(first_key), judged.get(other_key)))
     round_dir.mkdir(parents=True, exist_ok=True)
     homes = make_codex_home() if args.judge_engine == "codex" else None
     try:
@@ -624,6 +652,25 @@ def report(args: argparse.Namespace) -> int:
         lines.append("  - top tells: " + (", ".join(f"{name} ({count})" for name, count in
                      sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:10]) or "none"))
 
+    lines.extend(["", "## Edit amount", "", "| Group | Character similarity to SOURCE | Length ratio |",
+                  "|---|---:|---:|"])
+    source_by_stem = {path.stem: parse_input(path)[1] for path in input_files(evals_dir)}
+    edit_amount: dict[str, list[tuple[float, float]]] = {}
+    for output_path in sorted((round_dir / "outputs").glob("*/*/*.md")):
+        input_stem, _ = output_identity(output_path)
+        source = source_by_stem.get(input_stem)
+        if source is None:
+            continue
+        output = output_path.read_text(encoding="utf-8")
+        similarity = difflib.SequenceMatcher(None, source, output).ratio()
+        length_ratio = len(output) / len(source) if source else 0.0
+        group = f"{output_path.parts[-3]}/{output_path.parts[-2]}"
+        edit_amount.setdefault(group, []).append((similarity, length_ratio))
+    for group, values in sorted(edit_amount.items()):
+        similarity = sum(value[0] for value in values) / len(values)
+        length_ratio = sum(value[1] for value in values) / len(values)
+        lines.append(f"| {group} | {similarity:.4f} | {length_ratio:.4f} |")
+
     lines.extend(["", "## Pairwise", ""])
     pair_rows = load_jsonl(round_dir / "pair.jsonl")
     if pair_rows:
@@ -736,6 +783,7 @@ def main() -> None:
     common(run_parser)
     run_parser.add_argument("--engines", default="codex")
     run_parser.add_argument("--conditions", default="skill,plain")
+    run_parser.add_argument("--voice", help="saved voice.md profile to measure as a separate condition")
     run_parser.add_argument("--jobs", type=int, default=4)
     run_parser.add_argument("--codex-model", default="gpt-6-luna")
     run_parser.add_argument("--claude-model", default="claude-sonnet-5-5")

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import difflib
+import hashlib
 import json
 import tempfile
 import unittest
@@ -18,6 +20,70 @@ SPEC.loader.exec_module(loop)
 
 
 class EvalLoopTests(unittest.TestCase):
+    def test_skill_prompt_excludes_saved_voice_profiles(self) -> None:
+        prompt = loop.make_prompt("원문", "skill")
+        self.assertTrue(prompt.startswith(loop.SKILL_PATH.read_text(encoding="utf-8") + "\n\n"))
+        self.assertIn(
+            "No saved voice profile applies to this task; do not look for or read voice.md.", prompt
+        )
+
+    def test_voice_run_isolated_metadata_pair_and_edit_amount(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir) / "evals"
+            inputs = evals_dir / "inputs"
+            inputs.mkdir(parents=True)
+            source = "신청은 7일 이내입니다."
+            (inputs / "docs-1.ko.md").write_text(
+                f'---\ngenre: docs\nsource: generated\nmust_keep: ["7일"]\n---\n{source}',
+                encoding="utf-8",
+            )
+            profile = Path(temporary_dir) / "private-voice.md"
+            profile_text = "VOICE_PROFILE_PRIVATE: 짧고 담백한 문체를 유지합니다."
+            profile.write_text(profile_text, encoding="utf-8")
+            args = self.args(evals_dir, 1)
+            args.conditions = "skill"
+            args.voice = str(profile)
+            args.samples = 2
+            self.assertEqual(loop.run(args), 0)
+
+            round_dir = evals_dir / "rounds" / "1"
+            voice_output = round_dir / "outputs" / "fake" / "voice" / "docs-1.ko.md"
+            self.assertTrue(voice_output.exists())
+            self.assertIn("Saved voice profile (voice.md) for this writer:\n\n" + profile_text,
+                          voice_output.read_text(encoding="utf-8"))
+            self.assertTrue((voice_output.parent / "docs-1.ko~2.md").exists())
+            self.assertTrue((round_dir / "outputs" / "fake" / "skill" / "docs-1.ko.md").exists())
+
+            meta_path = round_dir / "meta.json"
+            metadata_text = meta_path.read_text(encoding="utf-8")
+            metadata = json.loads(metadata_text)
+            self.assertEqual(metadata["voice_digest"], hashlib.sha256(profile.read_bytes()).hexdigest())
+            self.assertNotIn(profile_text, metadata_text)
+            self.assertNotIn(str(profile), metadata_text)
+
+            args.judge_engine = "fake"
+            self.assertEqual(loop.judge(args), 0)
+            self.assertEqual(loop.pair(args), 0)
+            pair_rows = [json.loads(line) for line in (round_dir / "pair.jsonl").read_text().splitlines()]
+            self.assertIn("voice_vs_skill", {row["comparison"] for row in pair_rows})
+
+            with patch("builtins.print"):
+                self.assertEqual(loop.report(args), 0)
+            report = (round_dir / "report.md").read_text(encoding="utf-8")
+            self.assertIn("## Edit amount", report)
+            fake_output = voice_output.read_text(encoding="utf-8")
+            similarity = difflib.SequenceMatcher(None, source, fake_output).ratio()
+            length_ratio = len(fake_output) / len(source)
+            self.assertIn(f"| fake/voice | {similarity:.4f} | {length_ratio:.4f} |", report)
+
+    def test_run_rejects_missing_voice_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            args = self.args(Path(temporary_dir) / "evals", 1)
+            args.conditions = "skill"
+            args.voice = str(Path(temporary_dir) / "missing-voice.md")
+            with self.assertRaisesRegex(ValueError, "voice profile file does not exist"):
+                loop.run(args)
+
     def test_output_identity_accepts_single_and_numbered_samples(self) -> None:
         self.assertEqual(loop.output_identity(Path("docs-1.ko.md")), ("docs-1.ko", 1))
         self.assertEqual(loop.output_identity(Path("docs-1.ko~2.md")), ("docs-1.ko", 2))
@@ -378,6 +444,7 @@ class EvalLoopTests(unittest.TestCase):
         arguments.round = round_number
         arguments.engines = "fake"
         arguments.conditions = "skill,plain"
+        arguments.voice = None
         arguments.jobs = 2
         arguments.codex_model = "unused"
         arguments.claude_model = "unused"
