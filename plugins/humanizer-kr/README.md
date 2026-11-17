@@ -36,7 +36,7 @@ Humanizer KR는 문장을 더 화려하게 만들지 않습니다. 독자가 바
 GitHub marketplace를 추가한 뒤 플러그인을 설치하는 방식을 권장합니다.
 
 ```bash
-codex plugin marketplace add hjongc/humanizer-kr --ref v0.1.10
+codex plugin marketplace add hjongc/humanizer-kr --ref v0.2.0
 codex plugin add humanizer-kr@humanizer-kr-marketplace
 ```
 
@@ -65,7 +65,7 @@ Claude Code에서는 보통 아래처럼 네임스페이스를 붙여 호출합�
 태그를 고정해서 쓰고 싶다면 로컬에 태그를 지정해 clone한 뒤 그 경로를 marketplace로 추가하세요.
 
 ```bash
-git clone --branch v0.1.10 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.2.0 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -146,6 +146,8 @@ Humanizer KR는 영어권 AI 문체 목록을 그대로 번역한 스킬이 아�
 - 소셜 포스트가 슬로건 리듬과 챗봇식 친절함으로 평평해지는 경우
 
 스킬은 초안을 읽고 장르와 독자를 먼저 정한 뒤, 사실과 문단 범위를 유지하면서 문장만 다시 씁니다. 근거가 약한 주장은 더 작게 말하거나 출처를 요청합니다.
+
+AI가 쓴 초안을 다듬는 용도로 만들었습니다. 이미 사람이 쓴 글에 돌리면 AI 문체 신호가 적어도 표현을 바꾸면서 뜻이 조금씩 달라질 수 있으니, 그런 글에는 쓰지 않는 편이 좋습니다.
 
 ### 핵심 관점
 
@@ -268,6 +270,7 @@ Humanizer KR는 이런 표현을 단어 하나만 보고 지우지 않습니다.
 
 ## 버전 히스토리
 
+- **0.2.0** - AI 문체 제거를 목표로 다시 맞추고, 의미 고정(Meaning Lock)과 최소 편집 원칙, 개인 문체 프로필, 법제처ㆍ국립국어원 기반 문장 규칙, audit `--source` 의미 검사를 추가했습니다.
 - **0.1.10** - README 이미지를 제거하고 작동 예시를 Before/After 중심으로 간결하게 정리했습니다.
 - **0.1.9** - audit script에 `--fail-on-findings`와 `--after-examples` 품질 게이트를 추가하고, 패키지 검증이 공개 after 예시의 기본ㆍ장르별 품질 점검을 함께 확인하도록 했습니다.
 - **0.1.8** - README 첫 예시와 이미지, 출력 개선 루프를 추가하고 공개 README에서 maintainer용 섹션을 덜어냈습니다.

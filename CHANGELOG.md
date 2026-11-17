@@ -2,9 +2,15 @@
 
 All notable changes to Humanizer KR are documented here.
 
-## Unreleased
+## 0.2.0 - 2026-11-17
 
 - Re-aimed rewrite guidance at removing AI-writing tells and translationese while preserving source meaning, facts, and level of detail.
+- Added personal voice profiles: pasted samples are saved under `~/.humanizer-kr/samples/` (or a project `.humanizer-kr/`) and summarized into `voice.md`.
+- Added official-source sentence rules (MOLEG S1-S13, NIKL N1-N13) with a small default set and opt-in public-language rules.
+- Added a Meaning Lock: modality, hedges, hearsay, tense, qualifiers, restrictors, conditions, causal connectives, and proper nouns stay as in the source.
+- Limited edits to spans that carry an AI tell; sentences without a tell are copied unchanged.
+- Added `--source` to the audit script to flag numbers, UI paths, quotes, and modality dropped from the original.
+- Added a maintainer-only output-feedback eval loop (`evals/`).
 
 ## 0.1.10 - 2026-07-02
 

@@ -105,10 +105,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.1.10` and add the local path:
+For an immutable install, clone this repository at `v0.2.0` and add the local path:
 
 ```bash
-git clone --branch v0.1.10 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.2.0 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -200,6 +200,7 @@ Use `skills/humanizer-kr/references/rewriting-playbook.md` for pattern-specific 
 
 ## Limitations
 
+- It is built for AI-written drafts. On text a person already wrote, it can still reword sentences and shift their meaning slightly, so do not run it on human-written text.
 - The skill improves wording and register; it does not verify factual claims unless the user provides sources.
 - The audit script is conservative and pattern-based. Clean output does not guarantee polished Korean.
 - Claude Code plugin behavior can vary by installed Claude Code version. Validate locally before publishing to a Claude marketplace.
