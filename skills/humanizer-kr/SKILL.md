@@ -15,6 +15,7 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
 2. Preserve facts, intent, paragraph coverage, and constraints. When cutting praise or filler, keep every factual element: UI paths and menu names verbatim (`설정 > 알림`), names, numbers, dates, conditions, and each distinct event or action. Do not merge two events into one. Rewrite the language, not the underlying claims. Never add facts.
 3. Look for `voice.md` in `./.humanizer-kr/` first, then `~/.humanizer-kr/`; load only that profile during a rewrite.
 4. Choose one register and keep it stable:
+   When the request does not specify a register, keep the source's register. Do not mix `해요` and `합니다` endings in one text, except in quoted UI text.
    - formal public/professional: `합니다`, `하십시오`
    - polite product/support: `해요`, `해주세요`
    - concise internal note: plain declarative Korean with minimal honorific padding
@@ -47,6 +48,7 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
   - plan: `연락드릴 예정입니다` is not the first-person promise `연락드릴게요`.
   - restriction: `제한됩니다` is not `할 수 없습니다`.
 - Keep restrictors and scope words: `~인 경우에만`, `만`, `우선`, `까지`, `최대`, `이상/이하`. `승인된 경우에만` is not `승인된 뒤에`.
+- Keep conditions exactly as stated; do not reinterpret or soften them with your own explanation of the situation. `연결이 끊긴 경우` is not `연결이 끊긴 것처럼 보여도`; `오류가 난 경우` is not `오류가 난 듯해도`.
 - Keep every proper noun the source uses (organisation, product, place) at least once, even when cutting the sentence that held it; do not replace it with `저희`, `해당`, or nothing. Do not turn a thank-you into a commitment (`의견 감사합니다` is not `소중히 참고하겠습니다`).
 - Keep domain terms and cost or price labels, such as `도입 비용`.
 - Keep relations between facts; do not join independent facts into a cause, condition, or time relation.
@@ -150,7 +152,7 @@ Fix formulaic structure only when it makes the text less useful. Lists, labels, 
 - Punctuation and parenthesis clutter: split sentences packed with parentheses, slash pairs, decorative quotes, arrows, or repeated colons.
 - Heading warm-ups: let headings do their job; cut `살펴보겠습니다`, `알아보겠습니다`, and `다음과 같습니다` when they only repeat the heading.
 - Bold-label lists: replace repeated `**라벨:** 설명` bullets with normal bullets, a table, or prose unless label-heavy scanning is needed.
-- Change-anchored documentation: describe the current behavior instead of `새롭게 추가된`, `개선되었습니다`, or `변경되었습니다`, except in changelogs or migration guides.
+- Change-anchored wording: in docs/help text, describe the current behavior instead of `새롭게 추가된`, `개선되었습니다`, or `변경되었습니다` only when the source also states that current behavior. In notices, announcements, release notes, and emails, a change is an event and must remain; wording may be tightened (for example, `화면이 새롭게 개선되었습니다` to `화면이 개선되었습니다`), but do not delete the change.
 - Uniform cadence and slogan rhythm: vary sentence length when every sentence lands like `빠릅니다. 간단합니다. 강력합니다.`
 
 Before: `## 설정\n설정 방법을 살펴보겠습니다.\n알림을 끄려면 설정에서 알림 옵션을 해제합니다.`
