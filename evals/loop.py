@@ -68,6 +68,25 @@ def input_files(evals_dir: Path) -> list[Path]:
     return sorted((evals_dir / "inputs").glob("*.ko.md"))
 
 
+def output_identity(output_path: Path) -> tuple[str, int]:
+    """Return the source input stem and sample number for an output file."""
+    match = re.fullmatch(r"(.+)~([1-9]\d*)", output_path.stem)
+    sample = int(match.group(2)) if match else 1
+    return (match.group(1), sample) if match and sample > 1 else (output_path.stem, 1)
+
+
+def wilson_interval(successes: int, total: int) -> tuple[float, float]:
+    """Return the two-sided 95% Wilson score interval for a rate."""
+    if not total:
+        return (0.0, 0.0)
+    rate = successes / total
+    z = 1.959963984540054
+    denominator = 1 + z * z / total
+    center = (rate + z * z / (2 * total)) / denominator
+    margin = z * ((rate * (1 - rate) / total + z * z / (4 * total * total)) ** 0.5) / denominator
+    return (max(0.0, center - margin), min(1.0, center + margin))
+
+
 def make_prompt(body: str, condition: str) -> str:
     """Build the isolated generator prompt for one condition."""
     if condition == "plain":
@@ -121,6 +140,8 @@ def make_codex_home() -> tempfile.TemporaryDirectory[str]:
 
 def run(args: argparse.Namespace) -> int:
     """Generate resumable output files for all selected input combinations."""
+    if getattr(args, "samples", 1) < 1:
+        raise ValueError("--samples must be at least 1")
     evals_dir = Path(args.evals_dir)
     round_dir = evals_dir / "rounds" / str(args.round)
     round_dir.mkdir(parents=True, exist_ok=True)
@@ -164,9 +185,11 @@ def run(args: argparse.Namespace) -> int:
             for condition in conditions:
                 if args.round > 1 and condition == "plain" and not getattr(args, "with_plain", False):
                     continue
-                destination = round_dir / "outputs" / engine / condition / f"{path.stem}.md"
-                if not (destination.exists() and destination.stat().st_size):
-                    tasks.append((path, body, engine, condition, destination))
+                for sample in range(1, getattr(args, "samples", 1) + 1):
+                    suffix = f"~{sample}" if sample > 1 else ""
+                    destination = round_dir / "outputs" / engine / condition / f"{path.stem}{suffix}.md"
+                    if not (destination.exists() and destination.stat().st_size):
+                        tasks.append((path, body, engine, condition, destination))
     failures = False
     homes = make_codex_home() if "codex" in args.engines.split(",") else None
     def generate(task: tuple[Path, str, str, str, Path]) -> None:
@@ -282,15 +305,16 @@ def judge(args: argparse.Namespace) -> int:
     for output_path in sorted((round_dir / "outputs").glob("*/*/*.md")):
         key = str(output_path.relative_to(round_dir))
         if key not in existing:
-            input_path = evals_dir / "inputs" / f"{output_path.stem[:-3]}.ko.md"
+            input_stem, sample = output_identity(output_path)
+            input_path = evals_dir / "inputs" / f"{input_stem}.md"
             metadata, source = parse_input(input_path)
-            tasks.append((output_path, key, metadata, source))
+            tasks.append((output_path, key, metadata, source, sample))
     lock = threading.Lock()
     failures = False
     homes = make_codex_home() if args.judge_engine == "codex" else None
     judge_file.parent.mkdir(parents=True, exist_ok=True)
-    def evaluate(task: tuple[Path, str, dict[str, Any], str]) -> None:
-        output_path, key, metadata, source = task
+    def evaluate(task: tuple[Path, str, dict[str, Any], str, int]) -> None:
+        output_path, key, metadata, source, sample = task
         output = output_path.read_text(encoding="utf-8")
         if args.judge_engine == "fake":
             verdict = {"invented": [], "dropped_facts": [], "register_ok": True,
@@ -305,7 +329,7 @@ def judge(args: argparse.Namespace) -> int:
                 verdict = parse_verdict(raw, output)
             except (ValueError, json.JSONDecodeError) as error:
                 verdict = {"error": str(error), "raw": raw}
-        row = {"output": key, "engine": output_path.parts[-3], "condition": output_path.parts[-2],
+        row = {"output": key, "sample": sample, "engine": output_path.parts[-3], "condition": output_path.parts[-2],
                "genre": metadata.get("genre"), "thin": metadata.get("thin", False), "verdict": verdict,
                "checks": facts(source, output, metadata.get("must_keep", [])),
                "audit_before": len(audit_module.audit(source)), "audit_after": len(audit_module.audit(output))}
@@ -360,31 +384,34 @@ def pair(args: argparse.Namespace) -> int:
     evals_dir = Path(args.evals_dir)
     round_dir = evals_dir / "rounds" / str(args.round)
     pair_file = round_dir / "pair.jsonl"
-    existing = {(row.get("input"), row.get("engine"), row.get("comparison"))
+    existing = {(row.get("input"), row.get("engine"), row.get("comparison"), row.get("sample", 1))
                 for row in load_jsonl(pair_file)}
     judged = {row.get("output"): row for row in load_jsonl(round_dir / "judge.jsonl")}
     pending = []
-    for input_path in input_files(evals_dir):
+    for skill_path in sorted((round_dir / "outputs").glob("*/skill/*.md")):
+        input_stem, sample = output_identity(skill_path)
+        input_path = evals_dir / "inputs" / f"{input_stem}.md"
+        if not input_path.exists() or (sample > 1 and not getattr(args, "all_samples", False)):
+            continue
         metadata, source = parse_input(input_path)
-        filename = f"{input_path.stem}.md"
-        for skill_path in sorted((round_dir / "outputs").glob(f"*/skill/{filename}")):
-            engine = skill_path.parts[-3]
-            plain_path = round_dir / "outputs" / engine / "plain" / filename
-            comparisons = [("skill_vs_plain", plain_path, plain_path.read_text(encoding="utf-8") if plain_path.exists() else None),
-                           ("skill_vs_source", None, source)]
-            for comparison, other_path, other_text in comparisons:
-                key = (input_path.name, engine, comparison)
-                if key in existing or other_text is None:
-                    continue
-                skill_key = str(skill_path.relative_to(round_dir))
-                other_key = str(other_path.relative_to(round_dir)) if other_path else None
-                pending.append((input_path.name, engine, comparison, skill_path.read_text(encoding="utf-8"),
-                                other_text, judged.get(skill_key), judged.get(other_key)))
+        filename = f"{input_stem}.md"
+        engine = skill_path.parts[-3]
+        plain_path = round_dir / "outputs" / engine / "plain" / filename
+        comparisons = [("skill_vs_plain", plain_path, plain_path.read_text(encoding="utf-8") if plain_path.exists() else None),
+                       ("skill_vs_source", None, source)]
+        for comparison, other_path, other_text in comparisons:
+            key = (input_path.name, engine, comparison, sample)
+            if key in existing or other_text is None:
+                continue
+            skill_key = str(skill_path.relative_to(round_dir))
+            other_key = str(other_path.relative_to(round_dir)) if other_path else None
+            pending.append((input_path.name, engine, comparison, sample, skill_path.read_text(encoding="utf-8"),
+                            other_text, judged.get(skill_key), judged.get(other_key)))
     round_dir.mkdir(parents=True, exist_ok=True)
     homes = make_codex_home() if args.judge_engine == "codex" else None
     try:
         with pair_file.open("a", encoding="utf-8") as stream:
-            for input_name, engine, comparison, skill_text, other_text, skill_judge, other_judge in pending:
+            for input_name, engine, comparison, sample, skill_text, other_text, skill_judge, other_judge in pending:
                 forfeit = _hard_fail(skill_judge) or _hard_fail(other_judge)
                 if forfeit:
                     result, orders = ("loss" if _hard_fail(skill_judge) else "win"), []
@@ -402,7 +429,7 @@ def pair(args: argparse.Namespace) -> int:
                         winners.append(_pair_winner(raw))
                     orders = winners
                     result = "win" if winners == ["A", "B"] else "loss" if winners == ["B", "A"] else "tie"
-                row = {"input": input_name, "engine": engine, "comparison": comparison,
+                row = {"input": input_name, "sample": sample, "engine": engine, "comparison": comparison,
                        "result": result, "orders": orders, "forfeit": forfeit}
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
     finally:
@@ -493,23 +520,23 @@ def pick(args: argparse.Namespace) -> int:
     done = {(row["input"], row["engine"]) for row in previous}
     rng = random.Random(seed)
     candidates = []
-    for path in input_files(evals_dir):
+    for current in sorted((round_dir / "outputs").glob("*/skill/*.md")):
+        input_stem, sample = output_identity(current)
+        engine = current.parts[-3]
+        path = evals_dir / "inputs" / f"{input_stem}.md"
+        key = (path.name, engine)
+        if sample != 1 or engine not in args.engines.split(",") or not path.exists() or key in done:
+            continue
         metadata, _ = parse_input(path)
-        name = f"{path.stem}.md"
-        for engine in args.engines.split(","):
-            key = (path.name, engine)
-            if key in done:
-                continue
-            if args.round == 1:
-                current = round_dir / "outputs" / engine / "skill" / name
-                baseline = round_dir / "outputs" / engine / "plain" / name
-            else:
-                current = round_dir / "outputs" / engine / "skill" / name
-                plain = round_dir / "outputs" / engine / "plain" / name
-                baseline = plain if plain.exists() else \
-                    evals_dir / "rounds" / str(args.round - 1) / "outputs" / engine / "skill" / name
-            if current.exists() and baseline.exists():
-                candidates.append((path, metadata, engine, current, baseline))
+        name = f"{input_stem}.md"
+        if args.round == 1:
+            baseline = round_dir / "outputs" / engine / "plain" / name
+        else:
+            plain = round_dir / "outputs" / engine / "plain" / name
+            baseline = plain if plain.exists() else \
+                evals_dir / "rounds" / str(args.round - 1) / "outputs" / engine / "skill" / name
+        if baseline.exists():
+            candidates.append((path, metadata, engine, current, baseline))
     rng.shuffle(candidates)
     chosen = candidates[:args.n]
     round_dir.mkdir(parents=True, exist_ok=True)
@@ -543,12 +570,25 @@ def report(args: argparse.Namespace) -> int:
     groups = sorted({(row["engine"], row["condition"]) for row in rows})
     for row in rows:
         row["hard_fail"] = _hard_fail(row)
+        row["sample"] = row.get("sample", output_identity(Path(row["output"]))[1])
     lines = [f"# Round {args.round} report", "", f"Outputs judged: {len(rows)}",
              f"Judge errors: {len(rows) - len(valid_rows)}", "",
              f"Hard-fail rate (facts): {sum(row['hard_fail'] for row in rows)}/{len(rows)}" if rows else "Hard-fail rate (facts): n/a"]
     for engine, condition in groups:
         subset = [row for row in rows if (row["engine"], row["condition"]) == (engine, condition)]
-        lines.append(f"- {engine} / {condition}: {sum(row['hard_fail'] for row in subset)}/{len(subset)}")
+        failures = sum(row["hard_fail"] for row in subset)
+        lower, upper = wilson_interval(failures, len(subset))
+        lines.append(f"- {engine} / {condition}: hard-fail outputs {failures}/{len(subset)}; "
+                     f"Wilson 95% interval {lower:.1%}–{upper:.1%}")
+        input_samples: dict[str, list[bool]] = {}
+        for row in subset:
+            input_stem, _ = output_identity(Path(row["output"]))
+            input_samples.setdefault(input_stem, []).append(row["hard_fail"])
+        if any(len(samples) > 1 for samples in input_samples.values()):
+            failing_some = sum(any(samples) for samples in input_samples.values())
+            failing_all = sum(all(samples) for samples in input_samples.values())
+            lines.append(f"  - inputs failing in >= 1 sample: {failing_some}/{len(input_samples)}")
+            lines.append(f"  - inputs failing in all samples: {failing_all}/{len(input_samples)}")
 
     fields = {field for row in valid_rows for field in row.get("verdict", {})}
     for field in ("human_likeness", "naturalness", "genre_fit"):
@@ -654,17 +694,25 @@ def report(args: argparse.Namespace) -> int:
             for engine in sorted({row["engine"] for row in rows + previous}):
                 old_skill = [row for row in previous if row["engine"] == engine and row["condition"] == "skill"]
                 new_skill = [row for row in rows if row["engine"] == engine and row["condition"] == "skill"]
-                common = {Path(row["output"]).name for row in old_skill} & {Path(row["output"]).name for row in new_skill}
+                old_inputs = {output_identity(Path(row["output"]))[0] for row in old_skill}
+                new_inputs = {output_identity(Path(row["output"]))[0] for row in new_skill}
+                common = old_inputs & new_inputs
                 lines.append(f"- {engine} (common inputs: {len(common)})")
                 metrics = ["hard_fail", "human_likeness"]
                 if old_skill and new_skill and any("naturalness" in row.get("verdict", {}) for row in old_skill) and \
                         any("naturalness" in row.get("verdict", {}) for row in new_skill):
                     metrics.append("naturalness")
                 for metric in metrics:
-                    old = [row for row in old_skill if Path(row["output"]).name in common and "error" not in row.get("verdict", {})]
-                    new = [row for row in new_skill if Path(row["output"]).name in common and "error" not in row.get("verdict", {})]
+                    old = [row for row in old_skill if output_identity(Path(row["output"]))[0] in common and "error" not in row.get("verdict", {})]
+                    new = [row for row in new_skill if output_identity(Path(row["output"]))[0] in common and "error" not in row.get("verdict", {})]
                     if metric == "hard_fail":
                         old_values, new_values = [int(_hard_fail(row)) for row in old], [int(_hard_fail(row)) for row in new]
+                        old_rate = sum(old_values) / len(old_values) if old_values else None
+                        new_rate = sum(new_values) / len(new_values) if new_values else None
+                        lines.append(f"  - hard_fail: {old_rate:.3f} (n={len(old_values)}) -> "
+                                     f"{new_rate:.3f} (n={len(new_values)})" if old_rate is not None and new_rate is not None
+                                     else "  - hard_fail: n/a")
+                        continue
                     else:
                         old_values = [row["verdict"][metric] for row in old if metric in row.get("verdict", {})]
                         new_values = [row["verdict"][metric] for row in new if metric in row.get("verdict", {})]
@@ -694,6 +742,8 @@ def main() -> None:
     run_parser.add_argument("--engine-check", action="store_true")
     run_parser.add_argument("--with-plain", action="store_true",
                             help="also generate plain baseline outputs after round 1")
+    run_parser.add_argument("--samples", type=int, default=1,
+                            help="outputs to generate per input and condition")
     run_parser.set_defaults(handler=run)
     judge_parser = commands.add_parser("judge")
     common(judge_parser)
@@ -705,6 +755,8 @@ def main() -> None:
     common(pair_parser)
     pair_parser.add_argument("--judge-engine", default="claude")
     pair_parser.add_argument("--judge-model", default="claude-opus-5-5")
+    pair_parser.add_argument("--all-samples", action="store_true",
+                             help="compare every skill sample with plain sample 1")
     pair_parser.set_defaults(handler=pair)
     stats_parser = commands.add_parser("stats")
     common(stats_parser)

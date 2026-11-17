@@ -38,8 +38,10 @@ Run the same inputs with the skill or a plain rewrite prompt:
 
 ```bash
 python3 evals/loop.py run --round 4 --engines codex,claude
+python3 evals/loop.py run --round 4 --engines codex --samples 3
 python3 evals/loop.py judge --round 4 --judge-engine claude
 python3 evals/loop.py pair --round 4 --judge-engine claude
+python3 evals/loop.py pair --round 4 --judge-engine claude --all-samples
 python3 evals/loop.py stats --round 4 --human ~/.humanizer-kr/samples
 python3 evals/loop.py report --round 4 --human ~/.humanizer-kr/samples
 ```
@@ -48,19 +50,25 @@ python3 evals/loop.py report --round 4 --human ~/.humanizer-kr/samples
 baseline is normally created in round 1 and reused in later rounds; pass
 `run --round N --with-plain` to generate a fresh one. Each round's `meta.json`
 records the skill revision, content digest, dirty flag, models, and date.
-Generator calls run in isolated temporary working directories.
+Generator calls run in isolated temporary working directories. `--samples K`
+generates K resumable outputs for each selected input, engine, and condition
+(default 1). Sample 1 keeps `<input-stem>.md`; samples 2 and up use
+`<input-stem>~<sample>.md`. Only the conditions selected for that run receive
+the requested samples, so an existing single-sample plain baseline can remain
+unchanged.
 
 `pick` is an optional blind human comparison. In round 1 it samples skill vs
 plain; in later rounds it uses same-round plain when available, otherwise the
 previous round's skill output. The judge and pair commands provide separate
 model-based measurements.
 
-`pair` compares each skill output with the same-round plain output when one
-exists, and with SOURCE. It asks the same judge engine/model twice with A/B
+`pair` compares sample 1 by default. `--all-samples` compares every skill
+sample with plain sample 1 when it exists, and with SOURCE. It asks the same judge engine/model twice with A/B
 swapped. A win or loss requires agreement across both orders; disagreement is
 a tie. Outputs that fail the round's factual hard-fail checks forfeit without a
-model call. `--judge-engine fake` produces deterministic ties for offline tests.
-Pair records are resumable by input, engine, and comparison.
+model call. Each comparison costs two model calls. `--judge-engine fake`
+produces deterministic ties for offline tests. Pair records are resumable by
+input, engine, comparison, and sample.
 
 The judge returns these required fields:
 
@@ -106,6 +114,10 @@ no human-distance values. Objective stats can be read from `stats.json` or
 computed when reporting. Round deltas compare common skill inputs against the
 previous round and include factual hard-fail rate and human-likeness. A
 naturalness delta is included only when both rounds contain that legacy metric.
+Hard-fail output rates include a 95% Wilson score interval. When a group has
+multiple samples per input, the report also shows how many inputs failed in at
+least one sample and in every sample. Round deltas compare hard-fail rates over
+the common inputs and show the sample count used for each round.
 The report also includes the legacy audit false-positive rate over `evals/human/`.
 
 ## Triage

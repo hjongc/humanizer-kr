@@ -18,6 +18,10 @@ SPEC.loader.exec_module(loop)
 
 
 class EvalLoopTests(unittest.TestCase):
+    def test_output_identity_accepts_single_and_numbered_samples(self) -> None:
+        self.assertEqual(loop.output_identity(Path("docs-1.ko.md")), ("docs-1.ko", 1))
+        self.assertEqual(loop.output_identity(Path("docs-1.ko~2.md")), ("docs-1.ko", 2))
+
     def test_judge_prompt_includes_both_sourced_rule_sets_and_matrix(self) -> None:
         prompt = loop.judge_prompt("public-notice", [], "원문", "결과")
         self.assertIn("## Korean AI-Writing Tells", prompt)
@@ -142,8 +146,44 @@ class EvalLoopTests(unittest.TestCase):
             self.assertIn("Delta vs round 1", report)
             self.assertIn("common inputs: 1", report)
             self.assertIn("human_likeness: 3.0 -> 3.0", report)
-            self.assertIn("hard_fail: 0.0 -> 0.0", report)
+            self.assertIn("hard_fail: 0.000 (n=1) -> 0.000 (n=1)", report)
             self.assertIn("Judge errors: 0", report)
+
+    def test_run_samples_judge_and_multi_sample_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir)
+            inputs = evals_dir / "inputs"
+            inputs.mkdir()
+            (inputs / "docs-1.ko.md").write_text(
+                '---\ngenre: docs\nsource: generated\nmust_keep: ["7일"]\n---\n신청은 7일 이내입니다.',
+                encoding="utf-8",
+            )
+            args = self.args(evals_dir, 1)
+            args.conditions = "skill"
+            args.samples = 3
+            self.assertEqual(loop.run(args), 0)
+            output_dir = evals_dir / "rounds" / "1" / "outputs" / "fake" / "skill"
+            self.assertEqual(sorted(path.name for path in output_dir.glob("*.md")),
+                             ["docs-1.ko.md", "docs-1.ko~2.md", "docs-1.ko~3.md"])
+            self.assertFalse((evals_dir / "rounds" / "1" / "outputs" / "fake" / "plain").exists())
+            (output_dir / "docs-1.ko~2.md").write_text("resume sentinel", encoding="utf-8")
+            self.assertEqual(loop.run(args), 0)
+            self.assertEqual(len(list(output_dir.glob("*.md"))), 3)
+            self.assertEqual((output_dir / "docs-1.ko~2.md").read_text(encoding="utf-8"), "resume sentinel")
+            args.judge_engine = "fake"
+            self.assertEqual(loop.judge(args), 0)
+            judge_path = evals_dir / "rounds" / "1" / "judge.jsonl"
+            rows = [json.loads(line) for line in judge_path.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(sorted(row["sample"] for row in rows), [1, 2, 3])
+            rows[1]["checks"]["missing_numbers"] = ["7"]
+            judge_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            with patch("builtins.print"):
+                self.assertEqual(loop.report(args), 0)
+            report = (evals_dir / "rounds" / "1" / "report.md").read_text(encoding="utf-8")
+            self.assertIn("hard-fail outputs 1/3", report)
+            self.assertIn("Wilson 95% interval", report)
+            self.assertIn("inputs failing in >= 1 sample: 1/1", report)
+            self.assertIn("inputs failing in all samples: 0/1", report)
 
     def test_report_without_picks(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -259,6 +299,29 @@ class EvalLoopTests(unittest.TestCase):
             self.assertEqual(loop.pair(args), 0)
             self.assertEqual(len(pair_path.read_text().splitlines()), 4)
 
+    def test_pair_all_samples_uses_plain_sample_one(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            evals_dir = Path(temporary_dir)
+            (evals_dir / "inputs").mkdir()
+            (evals_dir / "inputs" / "docs-1.ko.md").write_text(
+                '---\ngenre: docs\nsource: generated\nmust_keep: []\n---\n원문입니다.', encoding="utf-8")
+            outputs = evals_dir / "rounds" / "1" / "outputs" / "fake"
+            (outputs / "skill").mkdir(parents=True)
+            (outputs / "plain").mkdir()
+            for name, text in (("docs-1.ko.md", "skill one"), ("docs-1.ko~2.md", "skill two")):
+                (outputs / "skill" / name).write_text(text, encoding="utf-8")
+            (outputs / "plain" / "docs-1.ko.md").write_text("plain one", encoding="utf-8")
+            args = self.args(evals_dir, 1)
+            self.assertEqual(loop.pair(args), 0)
+            pair_path = evals_dir / "rounds" / "1" / "pair.jsonl"
+            self.assertEqual(len(pair_path.read_text(encoding="utf-8").splitlines()), 2)
+            args.all_samples = True
+            self.assertEqual(loop.pair(args), 0)
+            rows = [json.loads(line) for line in pair_path.read_text(encoding="utf-8").splitlines()]
+            second_sample = [row for row in rows if row["sample"] == 2]
+            self.assertEqual(len(second_sample), 2)
+            self.assertEqual({row["comparison"] for row in second_sample}, {"skill_vs_plain", "skill_vs_source"})
+
     def test_stats_aggregates_human_files_without_copying_text(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
             evals_dir = Path(temporary_dir)
@@ -277,6 +340,13 @@ class EvalLoopTests(unittest.TestCase):
             data = json.loads(saved)
             self.assertEqual(data["human"]["count"], 1)
             self.assertIn("sent_len_mean", data["human"]["mean"])
+
+            output_dir = evals_dir / "rounds" / "1" / "outputs" / "fake" / "skill"
+            output_dir.mkdir(parents=True)
+            (output_dir / "docs-1.ko.md").write_text("첫 표본입니다.", encoding="utf-8")
+            (output_dir / "docs-1.ko~2.md").write_text("둘째 표본입니다.", encoding="utf-8")
+            values = loop.compute_stats(evals_dir, evals_dir / "rounds" / "1", None)
+            self.assertEqual(values["fake/skill"]["count"], 2)
 
     def test_report_accepts_old_round_schema(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -297,6 +367,7 @@ class EvalLoopTests(unittest.TestCase):
             self.assertIn("## Mean genre_fit", report)
             self.assertNotIn("## Mean human_likeness", report)
             self.assertIn("- fake / skill: n/a", report)
+            self.assertIn("hard-fail outputs 0/1", report)
 
     @staticmethod
     def args(evals_dir: Path, round_number: int):
@@ -317,6 +388,8 @@ class EvalLoopTests(unittest.TestCase):
         arguments.seed = None
         arguments.n = 1
         arguments.with_plain = False
+        arguments.samples = 1
+        arguments.all_samples = False
         return arguments
 
 
