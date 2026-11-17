@@ -12,7 +12,7 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
 ## Core Workflow
 
 1. Identify the genre and reader: product copy, public notice, email, essay, documentation, proposal, social post, or spoken script.
-2. Scope the edit. Find sentences with AI-writing tells or translationese. Rewrite only those sentences, and only the part carrying the tell; copy every other sentence unchanged, including its connectors, endings, hedges, hearsay markers, tense, and word choice. If the text has few or no tells, return it with minimal or no changes instead of polishing it.
+2. Scope the edit. First list privately the exact spans that carry an AI-writing tell or translationese. Start from a copy of the source and edit only those spans; every sentence without a listed span stays character-for-character identical. Do not split, merge, or reorder sentences unless the tell is the sentence structure itself. If you split one, keep the connective that states its relation (`때문에`, `그래서`, `이런 까닭에`). Do not swap synonyms, quantifiers, or verbs outside a listed span, and do not add objects, purposes, or explanations. If the list is empty or contains only isolated items, return the source unchanged or edit only those items.
 3. Preserve facts, intent, paragraph coverage, and constraints. When cutting praise or filler, keep every factual element: UI paths and menu names verbatim (`설정 > 알림`), names, numbers, dates, conditions, and each distinct event or action. Do not merge two events into one. Rewrite the language, not the underlying claims. Never add facts.
 4. Look for `voice.md` in `./.humanizer-kr/` first, then `~/.humanizer-kr/`; load only that profile during a rewrite.
 5. Choose one register and keep it stable:
@@ -49,6 +49,7 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
   - plan: `연락드릴 예정입니다` is not the first-person promise `연락드릴게요`.
   - restriction: `제한됩니다` is not `할 수 없습니다`.
 - Keep the writer's stance markers: a hedge (`~라고 할 수 있다`, `~로 볼 수 있다`) is not an assertion (`~이다`); hearsay (`~다고 한다`) is not a direct claim; a past event (`~했더니 ~했다`) is not a general rule (`~하면 ~한다`); keep quantity and time qualifiers such as `대부분`, `일부`, `현재`, and `당시`.
+- Keep causal and logical connectives such as `때문에`, `그래서`, `따라서`, and `이런 까닭에`.
 - Keep restrictors and scope words: `~인 경우에만`, `만`, `우선`, `까지`, `최대`, `이상/이하`. `승인된 경우에만` is not `승인된 뒤에`.
 - Keep conditions exactly as stated; do not reinterpret or soften them with your own explanation of the situation. `연결이 끊긴 경우` is not `연결이 끊긴 것처럼 보여도`; `오류가 난 경우` is not `오류가 난 듯해도`.
 - Keep every proper noun the source uses (organisation, product, place) at least once, even when cutting the sentence that held it; do not replace it with `저희`, `해당`, or nothing. Do not turn a thank-you into a commitment (`의견 감사합니다` is not `소중히 참고하겠습니다`).
