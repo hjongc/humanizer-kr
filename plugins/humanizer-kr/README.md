@@ -36,7 +36,7 @@ Humanizer KR는 문장을 더 화려하게 만들지 않습니다. 독자가 바
 GitHub marketplace를 추가한 뒤 플러그인을 설치하는 방식을 권장합니다.
 
 ```bash
-codex plugin marketplace add hjongc/humanizer-kr --ref v0.2.0
+codex plugin marketplace add hjongc/humanizer-kr --ref v0.3.0
 codex plugin add humanizer-kr@humanizer-kr-marketplace
 ```
 
@@ -65,7 +65,7 @@ Claude Code에서는 보통 아래처럼 네임스페이스를 붙여 호출합�
 태그를 고정해서 쓰고 싶다면 로컬에 태그를 지정해 clone한 뒤 그 경로를 marketplace로 추가하세요.
 
 ```bash
-git clone --branch v0.2.0 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.3.0 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -115,23 +115,41 @@ python3 skills/humanizer-kr/scripts/audit_korean_text.py --quality --genre produ
 python3 skills/humanizer-kr/scripts/audit_korean_text.py --after-examples
 ```
 
-### 문체 맞추기
+### 문체 분석과 맞춤 글쓰기
 
-사용자의 기존 한국어 글 샘플을 함께 주면 문장 길이, 어미, 리듬, 표현 습관을 참고합니다. 일반적인 "깔끔한 한국어"로 덮어쓰지 않고 샘플의 목소리를 우선합니다.
-
-```text
-Use $humanizer-kr. Match this sample voice:
-[내가 쓴 한국어 샘플 2-3문단]
-
-Rewrite this:
-[고칠 초안]
-```
-
-붙여 넣은 글은 개인용 `~/.humanizer-kr/samples/`에 글마다 파일로 저장하고, 저장한 샘플에서 `voice.md` 프로필을 뽑습니다. 프로젝트에 저장하려면 요청에 밝혀 주세요. 프로젝트용 `./.humanizer-kr/`가 있으면 개인용보다 먼저 사용합니다. 이후 글을 고칠 때는 샘플을 다시 읽지 않고 프로필만 불러옵니다. 샘플을 더 보태려면 글을 추가로 저장한 뒤 전체 샘플에서 프로필을 다시 뽑으면 됩니다. 프로젝트용으로 저장했다면 `.humanizer-kr/`를 `.gitignore`에 추가하는 편이 좋습니다. 프로필은 직접 열어 고칠 수 있습니다.
+Claude Code에서는 작업별 슬래시 커맨드를 사용합니다. `v0.3.0` 이상을 설치한 뒤 Claude Code를 재시작하세요.
 
 ```text
-Use $humanizer-kr. 내 문체를 저장해줘: [내가 쓴 글]
+/humanizer-kr:analyze [내가 쓴 글 또는 파일 경로]
+/humanizer-kr:rewrite [고칠 초안과 문체 샘플, 또는 저장된 프로필 사용 요청]
+/humanizer-kr:write [주제, 독자, 목적, 사용할 사실]
 ```
+
+- `analyze`: 어미, 문장 길이, 문단 전개, 어휘, 감정 표현을 근거 인용과 함께 분석합니다. 분석 후 샘플과 문체 프로필을 기본 저장하며, 원문을 고치지는 않습니다. 글이 없으면 입력을 요청합니다.
+- `rewrite`: 사실과 의미를 지키면서 글 전체의 어미·리듬·문단 구성을 사용자 문체에 맞춥니다.
+- `write`: 제공한 사실과 작성 조건으로 새 글을 씁니다. 샘플 속 경험이나 일화를 새 글의 사실로 가져오지 않습니다. 프로필이나 샘플이 없으면 먼저 요청합니다.
+
+단순히 AI 표현을 제거하는 기존 모드는 최소 편집을 유지합니다. 문체 맞춤 모드에서는 그 제한을 풀되 사실 보존 검사는 유지합니다.
+
+Codex에서는 같은 작업을 `$humanizer-kr`로 지정합니다.
+
+```text
+Use $humanizer-kr. 내 문체를 분석해줘: [내가 쓴 글]
+Use $humanizer-kr. 내 문체로 고쳐줘: [초안과 문체 샘플]
+Use $humanizer-kr. 저장한 내 문체로 써줘. 주제: [주제], 독자: [독자], 목적: [목적], 사실: [사용할 정보]
+```
+
+분석하면 자동으로 저장합니다. 저장 없이 결과만 보고 싶으면 명시합니다.
+
+```text
+/humanizer-kr:analyze 저장하지 말고 분석만 해줘: [내가 쓴 글]
+```
+
+분석 시 저장 위치를 지정하면 그 위치를 사용합니다. 지정하지 않으면 현재 적용 중인 프로필 위치(프로젝트 우선)를 갱신하고, 기존 프로필이 없을 때만 개인용 `~/.humanizer-kr/`에 처음 저장합니다. 선택된 위치의 `samples/`에 글마다 원문을 보관하고 `voice.md`를 만듭니다. 개인 저장을 명시했어도 기존 프로젝트 프로필이 있으면 이 프로젝트에서는 프로젝트 프로필이 계속 우선합니다. 프로필에는 특징별 샘플 출처, 개인정보를 제외한 짧은 인용, 장르 범위와 근거 충분 여부를 기록합니다. 한 번 나온 표현을 상시 선호로 등록하지 않고, 업무 메일의 말투를 다른 장르에 일반화하지 않습니다.
+
+분석 결과인 `voice.md`는 이후 이 스킬로 글을 수정하거나 새로 쓸 때 자동으로 불러와 적용합니다. 매번 “내 문체로”라고 지정할 필요가 없으며, 원본 샘플은 다시 읽지 않습니다. 현재 요청에서 다른 문체를 지정하거나 프로필 사용을 제외하면 그 요청을 우선합니다. 샘플을 추가하면 전체 저장 샘플에서 프로필을 다시 추출합니다. 프로필은 직접 수정할 수 있고, 프로젝트 저장 시 `.humanizer-kr/`를 `.gitignore`에 추가하는 편이 좋습니다. 기존 프로필도 계속 사용할 수 있습니다.
+
+결과를 내기 전에 문체 특징과 다시 대조하고, 사실 보존과 샘플 문장 복사 여부를 별도로 확인합니다. 문체 재현 품질이 검증됐다는 뜻은 아니며, 비교 평가 방법은 [평가 안내](https://github.com/hjongc/humanizer-kr/blob/main/evals/README.md)를 참고하세요.
 
 ## 개요
 
@@ -270,6 +288,7 @@ Humanizer KR는 이런 표현을 단어 하나만 보고 지우지 않습니다.
 
 ## 버전 히스토리
 
+- **0.3.0** - 문체 분석·저장과 자동 적용, 분석·수정·새 글 작성 커맨드, 근거 기반 프로필과 문체 비교 평가를 추가했습니다.
 - **0.2.0** - AI 문체 제거를 목표로 다시 맞추고, 의미 고정(Meaning Lock)과 최소 편집 원칙, 개인 문체 프로필, 법제처ㆍ국립국어원 기반 문장 규칙, audit `--source` 의미 검사를 추가했습니다.
 - **0.1.10** - README 이미지를 제거하고 작동 예시를 Before/After 중심으로 간결하게 정리했습니다.
 - **0.1.9** - audit script에 `--fail-on-findings`와 `--after-examples` 품질 게이트를 추가하고, 패키지 검증이 공개 after 예시의 기본ㆍ장르별 품질 점검을 함께 확인하도록 했습니다.

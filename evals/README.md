@@ -58,6 +58,8 @@ python3 evals/loop.py run --round 4 --engines codex --voice ~/.humanizer-kr/voic
 python3 evals/loop.py judge --round 4 --judge-engine claude
 python3 evals/loop.py pair --round 4 --judge-engine claude
 python3 evals/loop.py pair --round 4 --judge-engine claude --all-samples
+python3 evals/loop.py pair --round 4 --voice /private/path/voice.md --holdout /private/path/held-out.md --all-samples
+python3 evals/loop.py pick --round 4 --comparison voice
 python3 evals/loop.py stats --round 4 --human ~/.humanizer-kr/samples
 python3 evals/loop.py report --round 4 --human ~/.humanizer-kr/samples
 ```
@@ -93,8 +95,36 @@ swapped. A win or loss requires agreement across both orders; disagreement is
 a tie. Outputs that fail the round's factual hard-fail checks forfeit without a
 model call. Each comparison costs two model calls. `--judge-engine fake`
 produces deterministic ties for offline tests. Pair records are resumable by
-input, engine, comparison, and sample. When sample-1 skill and voice outputs
-both exist, it also records `voice_vs_skill`.
+input, engine, comparison, and sample. `voice_vs_skill` is evaluated only when `--voice PATH --holdout FILE` are both
+supplied. The profile must match the generation digest; the holdout must be
+separate writing by the same user, excluded from profile extraction and candidate
+generation. Keep that split yourself: the evaluator cannot infer the training
+history of an arbitrary profile. Choose relevant genres and keep holdouts outside
+`samples/` so a rebuild does not consume them. The holdout is never sent to the
+generator. The judge receives both references and compares voice fidelity,
+including register, rhythm, paragraph progression, vocabulary, and emotional
+color, rather than generic human-likeness. It also checks copying and importing
+reference facts. With insufficient evidence, it should return tie. The same
+factual forfeits apply. `--all-samples` compares matched skill/voice samples;
+without it, only sample 1 is compared. Records retain only the criterion,
+reference digest, and outcome, not reference text or model explanations. Changed
+references require a new round. Legacy voice comparisons without
+`criterion: voice_fidelity` measured naturalness and are not fidelity evidence.
+
+`pick --comparison voice` shows voice vs skill candidates without condition labels
+and asks the writer which sounds more like their own writing. Picks and report
+rates are separate from the default rewrite comparison. A/B mapping is stored
+for scoring but concealed during selection. A tie is appropriate when neither
+candidate fits. Model judgments complement, rather than replace, the writer's
+blind preference.
+
+The generation loop currently evaluates existing-draft rewriting, not the new
+composition or profile-extraction tasks. Before claiming those work well, test
+Analyze on samples with different registers, sparse evidence, and explicit
+preferences; then test Voice write on an independent factual brief and inspect
+voice alignment, factual constraints, and copying. Do not use the analyzed text
+as the factual brief or the held-out comparison. No live voice-quality result
+is established by the deterministic tests.
 
 The judge returns these required fields:
 

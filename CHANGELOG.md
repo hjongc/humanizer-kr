@@ -2,6 +2,15 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.3.0 - 2026-11-17
+
+- Added Claude Code slash commands for style analysis, voice rewriting, and new composition.
+- Analysis now saves samples and an evidence-based `voice.md` by default; later writing automatically applies it.
+- Update the active profile directory by default so new analysis is not hidden behind an older project profile; preserve explicit manual preferences on rebuild.
+- Separated minimal AI-tell cleanup from voice rewriting and new composition, keeping factual constraints.
+- Added held-out voice-fidelity comparisons and blind user preferences, separate from generic human-likeness.
+- Made the multi-sample report test independent of concurrent result order.
+
 ## 0.2.0 - 2026-11-17
 
 - Re-aimed rewrite guidance at removing AI-writing tells and translationese while preserving source meaning, facts, and level of detail.

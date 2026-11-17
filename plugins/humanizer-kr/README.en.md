@@ -105,10 +105,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.2.0` and add the local path:
+For an immutable install, clone this repository at `v0.3.0` and add the local path:
 
 ```bash
-git clone --branch v0.2.0 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.3.0 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -162,21 +162,31 @@ To check every public after example with its genre-specific quality pass, run:
 python3 skills/humanizer-kr/scripts/audit_korean_text.py --after-examples
 ```
 
-### Voice matching
+### Style analysis and personalized writing
+
+Claude Code provides task-specific slash commands. Install `v0.3.0` or later and restart Claude Code.
 
 ```text
-Use $humanizer-kr. Match this sample voice:
-[your Korean writing sample]
-
-Rewrite this:
-[draft]
+/humanizer-kr:analyze [your writing or file path]
+/humanizer-kr:rewrite [draft and voice sample, or use the saved profile]
+/humanizer-kr:write [topic, reader, purpose, and supplied facts]
 ```
 
-Pasted samples are saved as individual files under `samples/`, and `voice.md` is extracted from those files. Personal storage uses `~/.humanizer-kr/` by default; use `./.humanizer-kr/` for a project only when requested. The project directory takes precedence. Later rewrites load only `voice.md`, keeping raw samples out of normal rewrite context. To add samples later, save the new files and rebuild the profile from all files in `samples/`. If you use project storage, consider adding `.humanizer-kr/` to `.gitignore`. You can edit the profile by hand.
+Analyze reports observed endings, sentence rhythm, paragraph progression, vocabulary, and emotional color with evidence. It saves the raw samples and creates or rebuilds `voice.md` by default, without rewriting the input or asking for a second confirmation. To opt out, use `/humanizer-kr:analyze Analyze without saving: [my writing]`.
+
+Voice rewrite can change endings, rhythm, and paragraph construction throughout while preserving claims. Voice write creates new text from a brief; samples supply voice, never new facts or personal experiences. Both ask for a sample when no sample/profile exists. Ordinary AI-tell removal still uses minimal edits.
+
+In Codex, select the same tasks through `$humanizer-kr`:
 
 ```text
-Use $humanizer-kr. 내 문체를 저장해줘: [내가 쓴 글]
+Use $humanizer-kr. Analyze my Korean writing style: [my writing]
+Use $humanizer-kr. Rewrite this in my voice: [draft and sample]
+Use $humanizer-kr. Write in my saved voice. Topic: [...]. Reader: [...]. Purpose: [...]. Facts: [...].
 ```
+
+Analysis saves samples and a derived `voice.md` unless explicitly opted out. An explicit storage selection wins; otherwise update the active profile directory (project first, then personal). With no existing profile, start in `~/.humanizer-kr/`. Store raw writing in the selected directory's `samples/`. If personal storage is explicitly selected while a project profile exists, that project profile still takes precedence when writing in this project. Each observed feature records its sample ID, a short privacy-safe quote, genre scope, and evidence sufficiency. A one-off phrase is not an always-use preference, and a work-email sample does not establish a chat style.
+
+Later rewrites and new compositions through this skill automatically load and apply `voice.md`; the user does not need to select their voice again. Current instructions can override or disable it. Raw samples are not reloaded. Adding samples rebuilds it from all saved samples. Profiles remain hand-editable; existing profiles still work. Consider ignoring `.humanizer-kr/` for project storage. Before returning output, check voice alignment, factual preservation, and sample copying separately. This workflow is not proof of voice fidelity; see [evaluation guidance](https://github.com/hjongc/humanizer-kr/blob/main/evals/README.md).
 
 ## Examples
 
