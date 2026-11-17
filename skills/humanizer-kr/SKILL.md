@@ -12,17 +12,18 @@ Do not help users hide plagiarism, impersonate a real person's authorship, or by
 ## Core Workflow
 
 1. Identify the genre and reader: product copy, public notice, email, essay, documentation, proposal, social post, or spoken script.
-2. Preserve facts, intent, paragraph coverage, and constraints. When cutting praise or filler, keep every factual element: UI paths and menu names verbatim (`설정 > 알림`), names, numbers, dates, conditions, and each distinct event or action. Do not merge two events into one. Rewrite the language, not the underlying claims. Never add facts.
-3. Look for `voice.md` in `./.humanizer-kr/` first, then `~/.humanizer-kr/`; load only that profile during a rewrite.
-4. Choose one register and keep it stable:
+2. Scope the edit. Find sentences with AI-writing tells or translationese. Rewrite only those sentences, and only the part carrying the tell; copy every other sentence unchanged, including its connectors, endings, hedges, hearsay markers, tense, and word choice. If the text has few or no tells, return it with minimal or no changes instead of polishing it.
+3. Preserve facts, intent, paragraph coverage, and constraints. When cutting praise or filler, keep every factual element: UI paths and menu names verbatim (`설정 > 알림`), names, numbers, dates, conditions, and each distinct event or action. Do not merge two events into one. Rewrite the language, not the underlying claims. Never add facts.
+4. Look for `voice.md` in `./.humanizer-kr/` first, then `~/.humanizer-kr/`; load only that profile during a rewrite.
+5. Choose one register and keep it stable:
    When the request does not specify a register, keep the source's register. Do not mix `해요` and `합니다` endings in one text, except in quoted UI text.
    - formal public/professional: `합니다`, `하십시오`
    - polite product/support: `해요`, `해주세요`
    - concise internal note: plain declarative Korean with minimal honorific padding
-5. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
-6. Check meaning in both directions: match every source claim to the rewrite with the same tense, degree, and terms; then match every rewrite claim to the source. Fix any mismatch or unsupported claim before continuing.
-7. Run the Korean audit pass before returning the final answer. When the source is available as a file, run the audit script with `--source <source-file>` and review every meaning-check finding: restore the item when the drop changes meaning; a dropped hedge that only propped up praise can stay dropped.
-8. Run one naturalness pass: check whether AI-writing tells or translationese remain. Check the default sourced rules S7, S8, S9, S10, S11, N8, and N9 (and N1 when the text addresses the reader with instructions); apply other S and N rules only when the user asks for public-language or plain-language correctness.
+6. Rewrite AI-like wording into Korean that is concrete, direct, and rhythmically varied.
+7. Check meaning in both directions: match every source claim to the rewrite with the same tense, degree, and terms; then match every rewrite claim to the source. Fix any mismatch or unsupported claim before continuing.
+8. Run the Korean audit pass before returning the final answer. When the source is available as a file, run the audit script with `--source <source-file>` and review every meaning-check finding: restore the item when the drop changes meaning; a dropped hedge that only propped up praise can stay dropped.
+9. Run one naturalness pass: check whether AI-writing tells or translationese remain. Check the default sourced rules S7, S8, S9, S10, S11, N8, and N9 (and N1 when the text addresses the reader with instructions); apply other S and N rules only when the user asks for public-language or plain-language correctness.
 
 When factual claims are weak, do not invent supporting detail. Either keep the claim modest, mark the uncertainty, or ask for a source when the source materially affects the rewrite.
 
@@ -47,12 +48,13 @@ Use this after removing obvious AI-writing tells. A rewrite can be clean and sti
   - estimate: `~할 것으로 보입니다` is not `~해요` or `~하겠습니다`; if an estimate only props up praise, delete the whole claim instead of asserting it.
   - plan: `연락드릴 예정입니다` is not the first-person promise `연락드릴게요`.
   - restriction: `제한됩니다` is not `할 수 없습니다`.
+- Keep the writer's stance markers: a hedge (`~라고 할 수 있다`, `~로 볼 수 있다`) is not an assertion (`~이다`); hearsay (`~다고 한다`) is not a direct claim; a past event (`~했더니 ~했다`) is not a general rule (`~하면 ~한다`); keep quantity and time qualifiers such as `대부분`, `일부`, `현재`, and `당시`.
 - Keep restrictors and scope words: `~인 경우에만`, `만`, `우선`, `까지`, `최대`, `이상/이하`. `승인된 경우에만` is not `승인된 뒤에`.
 - Keep conditions exactly as stated; do not reinterpret or soften them with your own explanation of the situation. `연결이 끊긴 경우` is not `연결이 끊긴 것처럼 보여도`; `오류가 난 경우` is not `오류가 난 듯해도`.
 - Keep every proper noun the source uses (organisation, product, place) at least once, even when cutting the sentence that held it; do not replace it with `저희`, `해당`, or nothing. Do not turn a thank-you into a commitment (`의견 감사합니다` is not `소중히 참고하겠습니다`).
 - Keep domain terms and cost or price labels, such as `도입 비용`.
 - Keep relations between facts; do not join independent facts into a cause, condition, or time relation.
-- Preserve UI paths, names, numbers, and dates verbatim as specified in step 2.
+- Preserve UI paths, names, numbers, and dates verbatim as specified in step 3.
 - Use no foreign word that the source does not contain.
 
 When the first rewrite is safe but still has AI-writing tells, make one more pass only to remove those tells; do not add content.
@@ -94,7 +96,7 @@ A profile describes the user's own voice. Do not build one to imitate another re
 
 ## Korean AI-Writing Tells
 
-These tells are tier H heuristics without an official source; where a tell overlaps an S-rule, the S-rule is the basis. Look for clusters, not isolated words. The five groups below are the editing frame; the 20 patterns are observation signals, not banned words. Apply them after identifying the genre, reader, and register.
+These tells are tier H heuristics without an official source; where a tell overlaps an S-rule, the S-rule is the basis. Look for clusters, not isolated words. A single connector such as `또한` or `이를 통해` in otherwise plain prose is ordinary human writing; treat it as a tell only when it repeats or pads. The five groups below are the editing frame; the 20 patterns are observation signals, not banned words. Apply them after identifying the genre, reader, and register.
 
 Read `references/rewriting-playbook.md` when a rewrite needs a concrete edit strategy or when the first pass is safe but still bland. Do not promote a new tell into the main workflow until it has evidence, a clean negative example, and regression coverage.
 
