@@ -13,7 +13,7 @@ evals/
   inputs/<id>.ko.md        Korean drafts to rewrite
   human/<id>.ko.md         legacy audit false-positive set
   loop.py                  run | judge | pair | stats | pick | report
-  rounds/<n>/              one directory per round
+  rounds/<n>/              one directory per round (local only, git-ignored)
     outputs/<engine>/<condition>/<id>.md
     judge.jsonl            one factual and human-likeness verdict per output
     pair.jsonl             pairwise model judgments
@@ -21,6 +21,21 @@ evals/
     picks.jsonl             optional blind human choices
     report.md               round summary
 ```
+
+Round outputs are not committed. Keep them locally, or pass `--evals-dir` to run
+the loop outside the repository (needed when inputs are private writing).
+
+## Results as of 0.2.0
+
+Codex `gpt-6-luna` generation, Claude Opus judge, 42 inputs x 3 samples:
+
+- facts changed (hard-fail): about 30% at the first baseline -> 13.5% (Wilson
+  95% 8.6%-20.5%); a second judge (`gpt-6.1-sol`) gave 17.5%, kappa 0.55
+- residual AI tells per output: 0.91 (plain "make it natural" prompt: 2.90)
+- pairwise vs source draft: 34 win, 2 tie, 6 loss
+- known gap: on genuinely human-written text the skill still changes meaning
+  in about 60% of outputs (both judges agree), so it should not be run on text
+  that is already human-written
 
 Input frontmatter:
 
