@@ -77,6 +77,7 @@ def validate_references() -> None:
         "korean-source-rules.md",
         "rewriting-playbook.md",
         "voice-profile-template.md",
+        "voice-feedback.md",
     ]
     for name in required_refs:
         refs = ROOT / "skills" / "humanizer-kr" / "references" / name
@@ -146,6 +147,9 @@ def validate_packaged_plugin_copy() -> None:
         "commands/analyze.md",
         "commands/rewrite.md",
         "commands/write.md",
+        "commands/feedback.md",
+        "skills/humanizer-kr/references/voice-feedback.md",
+        "skills/humanizer-kr/scripts/voice_feedback.py",
         "skills/humanizer-kr/references/voice-profile-template.md",
         "skills/humanizer-kr/references/korean-source-rules.md",
         "skills/humanizer-kr/references/rewriting-playbook.md",
