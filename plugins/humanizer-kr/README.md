@@ -36,7 +36,7 @@ Humanizer KR는 문장을 더 화려하게 만들지 않습니다. 독자가 바
 GitHub marketplace를 추가한 뒤 플러그인을 설치하는 방식을 권장합니다.
 
 ```bash
-codex plugin marketplace add hjongc/humanizer-kr --ref v0.3.0
+codex plugin marketplace add hjongc/humanizer-kr --ref v0.3.1
 codex plugin add humanizer-kr@humanizer-kr-marketplace
 ```
 
@@ -65,7 +65,7 @@ Claude Code에서는 보통 아래처럼 네임스페이스를 붙여 호출합�
 태그를 고정해서 쓰고 싶다면 로컬에 태그를 지정해 clone한 뒤 그 경로를 marketplace로 추가하세요.
 
 ```bash
-git clone --branch v0.3.0 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.3.1 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -117,23 +117,35 @@ python3 skills/humanizer-kr/scripts/audit_korean_text.py --after-examples
 
 ### 문체 분석과 맞춤 글쓰기
 
-Claude Code에서는 작업별 슬래시 커맨드를 사용합니다. `v0.3.0` 이상을 설치한 뒤 Claude Code를 재시작하세요.
+Claude Code에서는 작업별 슬래시 커맨드를 사용합니다. `v0.3.1` 이상을 설치한 뒤 Claude Code를 재시작하세요.
 
 ```text
 /humanizer-kr:analyze [내가 쓴 글 또는 파일 경로]
 /humanizer-kr:rewrite [고칠 초안과 문체 샘플, 또는 저장된 프로필 사용 요청]
 /humanizer-kr:write [주제, 독자, 목적, 사용할 사실]
+/humanizer-kr:feedback [명시적 선호, 수정 전·후와 이유, 또는 되돌리기]
 ```
 
 - `analyze`: 어미, 문장 길이, 문단 전개, 어휘, 감정 표현을 근거 인용과 함께 분석합니다. 분석 후 샘플과 문체 프로필을 기본 저장하며, 원문을 고치지는 않습니다. 글이 없으면 입력을 요청합니다.
 - `rewrite`: 사실과 의미를 지키면서 글 전체의 어미·리듬·문단 구성을 사용자 문체에 맞춥니다.
 - `write`: 제공한 사실과 작성 조건으로 새 글을 씁니다. 샘플 속 경험이나 일화를 새 글의 사실로 가져오지 않습니다. 프로필이나 샘플이 없으면 먼저 요청합니다.
 
+- `feedback`: 기존 프로필에 명시적 선호를 반영하거나, 수정 전·후 문장과 이유를 기록합니다. 수정문이나 A/B 선택만으로 규칙을 추측하지 않습니다. 변경 내용을 보여주며, 마지막 피드백 프로필 변경을 되돌릴 수 있습니다.
+
+```text
+/humanizer-kr:feedback 간결한 문장을 선호하지만 필요한 연결어는 살려줘.
+/humanizer-kr:feedback 수정 전: [원문] / 수정 후: [수정문] / 이유: [수정 이유]
+/humanizer-kr:feedback 마지막 프로필 변경을 되돌려줘.
+```
+
+피드백은 현재 적용 중인 프로필 위치에 저장합니다. 프로필이 없으면 먼저 `analyze`로 만듭니다. 명시적 선호는 과거 샘플에서 추론한 특징보다 우선합니다. 이후 수동 편집이나 재분석으로 프로필이 바뀌었다면 되돌리기가 새 편집을 덮어쓰지 않고 중단됩니다. 개인 프로필과 피드백 기록은 플러그인 패키지에 포함되지 않습니다.
+
 단순히 AI 표현을 제거하는 기존 모드는 최소 편집을 유지합니다. 문체 맞춤 모드에서는 그 제한을 풀되 사실 보존 검사는 유지합니다.
 
 Codex에서는 같은 작업을 `$humanizer-kr`로 지정합니다.
 
 ```text
+Use $humanizer-kr. 내 문체 선호로 저장해줘: 간결한 문장과 필요한 연결어를 좋아해.
 Use $humanizer-kr. 내 문체를 분석해줘: [내가 쓴 글]
 Use $humanizer-kr. 내 문체로 고쳐줘: [초안과 문체 샘플]
 Use $humanizer-kr. 저장한 내 문체로 써줘. 주제: [주제], 독자: [독자], 목적: [목적], 사실: [사용할 정보]
@@ -288,6 +300,7 @@ Humanizer KR는 이런 표현을 단어 하나만 보고 지우지 않습니다.
 
 ## 버전 히스토리
 
+- **0.3.1** - 명시적 문체 선호와 수정문·이유를 저장하는 `feedback` 커맨드와 안전한 되돌리기를 추가했습니다.
 - **0.3.0** - 문체 분석·저장과 자동 적용, 분석·수정·새 글 작성 커맨드, 근거 기반 프로필과 문체 비교 평가를 추가했습니다.
 - **0.2.0** - AI 문체 제거를 목표로 다시 맞추고, 의미 고정(Meaning Lock)과 최소 편집 원칙, 개인 문체 프로필, 법제처ㆍ국립국어원 기반 문장 규칙, audit `--source` 의미 검사를 추가했습니다.
 - **0.1.10** - README 이미지를 제거하고 작동 예시를 Before/After 중심으로 간결하게 정리했습니다.

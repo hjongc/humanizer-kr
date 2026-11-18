@@ -2,6 +2,13 @@
 
 All notable changes to Humanizer KR are documented here.
 
+## 0.3.1 - 2026-11-18
+
+- Added `/humanizer-kr:feedback` and the equivalent Codex task for explicit voice preferences, correction pairs/reasons, and comparison feedback.
+- Only an explicit preference changes the profile; example edits and A/B choices remain records without inferred rules.
+- Added private profile backups and undo, guarded by hashes and a local writer lock so newer edits are not silently overwritten.
+- Preserved existing voice lookup, profile formats, samples, and ordinary writing behavior.
+
 ## 0.3.0 - 2026-11-17
 
 - Added Claude Code slash commands for style analysis, voice rewriting, and new composition.

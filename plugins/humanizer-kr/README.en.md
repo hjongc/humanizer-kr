@@ -105,10 +105,10 @@ claude plugin marketplace add https://github.com/hjongc/humanizer-kr.git
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
 
-For an immutable install, clone this repository at `v0.3.0` and add the local path:
+For an immutable install, clone this repository at `v0.3.1` and add the local path:
 
 ```bash
-git clone --branch v0.3.0 https://github.com/hjongc/humanizer-kr.git
+git clone --branch v0.3.1 https://github.com/hjongc/humanizer-kr.git
 claude plugin marketplace add ./humanizer-kr
 claude plugin install humanizer-kr@humanizer-kr-marketplace
 ```
@@ -164,12 +164,21 @@ python3 skills/humanizer-kr/scripts/audit_korean_text.py --after-examples
 
 ### Style analysis and personalized writing
 
-Claude Code provides task-specific slash commands. Install `v0.3.0` or later and restart Claude Code.
+Claude Code provides task-specific slash commands. Install `v0.3.1` or later and restart Claude Code.
 
 ```text
 /humanizer-kr:analyze [your writing or file path]
 /humanizer-kr:rewrite [draft and voice sample, or use the saved profile]
 /humanizer-kr:write [topic, reader, purpose, and supplied facts]
+/humanizer-kr:feedback [explicit preference, before/after correction with reason, or undo]
+```
+
+Feedback requires an existing profile. It saves explicit preferences inside that profile, or records corrections/reasons and comparison choices without inventing rules. It updates the active directory and shows the changes. An explicit preference overrides inferred sample traits. Undo restores the last active change made by this helper; it refuses to overwrite later manual edits or an Analyze rebuild. Profile backups and feedback records stay in the user-selected voice directory, outside the installed plugin.
+
+```text
+/humanizer-kr:feedback Save this preference: concise sentences with meaningful connectors.
+/humanizer-kr:feedback Before: [...] / After: [...] / Reason: [...]
+/humanizer-kr:feedback Undo the last feedback profile change.
 ```
 
 Analyze reports observed endings, sentence rhythm, paragraph progression, vocabulary, and emotional color with evidence. It saves the raw samples and creates or rebuilds `voice.md` by default, without rewriting the input or asking for a second confirmation. To opt out, use `/humanizer-kr:analyze Analyze without saving: [my writing]`.
