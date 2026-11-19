@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="408" viewBox="0 0 960 408" role="img" aria-labelledby="title description">
+  <title id="title">Humanizer KR</title>
+  <desc id="description">과한 높임을 덜어낸 예시. 아래 내용을 확인하시어 이용에 참고 부탁드립니다. → 아래 내용을 확인해 주세요.</desc>
+  <defs>
+    <pattern id="ruling" width="34" height="34" patternUnits="userSpaceOnUse">
+      <path d="M0 33.5H34" fill="none" stroke="#ded3c1"/>
+    </pattern>
+  </defs>
+  <rect x="1" y="1" width="958" height="406" rx="16" fill="#f7f1e6" stroke="#b7a893" stroke-width="2"/>
+  <path d="M17 143H943V391H17Z" fill="url(#ruling)" opacity=".6"/>
+  <path d="M48 143H912M48 255H912" stroke="#b7a893"/>
+  <path d="M43 276V368" stroke="#8e3526" stroke-width="5" stroke-linecap="round"/>
+  <g font-family="system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif">
+    <text x="48" y="54" font-family="ui-monospace, monospace" font-size="27" font-weight="700" fill="#4c5a50">Humanizer KR</text>
+    <text x="48" y="113" fill="#19362c" font-size="48" font-weight="750">한국어 초안에서 군더더기 줄이기</text>
+    <text x="59" y="183" fill="#5d5044" font-size="24" font-weight="700">수정 전</text>
+    <text x="59" y="228" fill="#4e4a41" font-size="34">아래 내용을 확인하시어 이용에 참고 부탁드립니다.</text>
+    <text x="59" y="301" fill="#8e3526" font-size="24" font-weight="700">수정 후</text>
+    <text x="59" y="351" fill="#19362c" font-size="43" font-weight="750">아래 내용을 확인해 주세요.</text>
+  </g>
+</svg>
